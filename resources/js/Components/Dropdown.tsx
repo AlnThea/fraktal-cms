@@ -6,6 +6,7 @@ interface Props {
   align?: string;
   width?: string | number;
   contentClasses?: string;
+  position?: 'absolute' | 'fixed'; // tambahkan ini
   renderTrigger(): JSX.Element;
 }
 
@@ -19,21 +20,24 @@ export default function Dropdown({
   const [open, setOpen] = useState(false);
 
   const widthClass = {
-    '48': 'w-48',
+    '10': 'w-11',
+    '20': 'w-20',
+    '35': 'w-35',
+    '45': 'w-45',
+    '60': 'w-60',
   }[width.toString()];
 
   const alignmentClasses = (() => {
-    if (align === 'left') {
-      return 'origin-top-left left-0';
-    } else if (align === 'right') {
-      return 'origin-top-right right-0';
-    } else {
+      if (align === 'left') return 'origin-top-left left-0';
+      if (align === 'right') return 'origin-top-right right-0';
+      if (align === 'top') return 'origin-top-right -top-44 -right-44';
+      if (align === 'top-nav') return 'origin-top-right -top-44 -right-44';
+      if (align === 'top-collapsed') return 'origin-top-right -top-43 -right-14';
       return 'origin-top';
-    }
   })();
 
   return (
-    <div className="relative">
+    <div className="">
       <div onClick={() => setOpen(!open)}>{renderTrigger()}</div>
 
       {/* <!-- Full Screen Dropdown Overlay --> */}
@@ -52,7 +56,7 @@ export default function Dropdown({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <div className={'relative z-50'}>
+        <div className={'absolute z-50'}>
           <div
             className={classNames(
               'absolute mt-2 rounded-md shadow-lg',
@@ -63,7 +67,7 @@ export default function Dropdown({
           >
             <div
               className={classNames(
-                'rounded-md ring-1 ring-black ring-opacity-5',
+                'rounded-md border border-gray-200 dark:border-gray-700',
                 contentClasses,
               )}
             >

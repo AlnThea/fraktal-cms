@@ -1,415 +1,318 @@
-import { router } from '@inertiajs/core';
-import { Link, Head } from '@inertiajs/react';
+import {router} from '@inertiajs/core';
+import {Head} from '@inertiajs/react';
 import classNames from 'classnames';
-import React, { PropsWithChildren, useState } from 'react';
+import React, {useState} from 'react';
+
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
-import ApplicationMark from '@/Components/ApplicationMark';
+
 import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
-import { Team } from '@/types';
+import SideLink from '@/Components/SideLink';
+import {
+    IconBell,
+    IconCheck,
+    IconLogout,
+    IconUsersGroup,
+    IconMenu2,
+    IconX,
+    IconHome, IconLayoutDashboard, IconUserCircle, IconApi
+} from "@tabler/icons-react";
 
 interface Props {
-  title: string;
-  renderHeader?(): JSX.Element;
+    title: string;
+    renderHeader?: () => JSX.Element;
+    breadcrumb?: () => JSX.Element;
+    children?: React.ReactNode;
 }
 
-export default function AppLayout({
-  title,
-  renderHeader,
-  children,
-}: PropsWithChildren<Props>) {
-  const page = useTypedPage();
-  const route = useRoute();
-  const [showingNavigationDropdown, setShowingNavigationDropdown] =
-    useState(false);
+export default function AppLayout({title, renderHeader, breadcrumb, children}: Props) {
+    const route = useRoute();
+    const page = useTypedPage();
 
-  function switchToTeam(e: React.FormEvent, team: Team) {
-    e.preventDefault();
-    router.put(
-      route('current-team.update'),
-      {
-        team_id: team.id,
-      },
-      {
-        preserveState: false,
-      },
-    );
-  }
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        return localStorage.getItem('sidebar-collapsed') === 'true';
+    });
 
-  function logout(e: React.FormEvent) {
-    e.preventDefault();
-    router.post(route('logout'));
-  }
+    const toggleSidebar = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem('sidebar-collapsed', newState.toString());
+    };
 
-  return (
-    <div>
-      <Head title={title} />
+    const logout = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post(route('logout'));
+    };
 
-      <Banner />
+    const switchToTeam = (e: React.FormEvent, team: any) => {
+        e.preventDefault();
+        router.put(route('current-team.update'), {team_id: team.id});
+    };
 
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          {/* <!-- Primary Navigation Menu --> */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex">
-                {/* <!-- Logo --> */}
-                <div className="flex-shrink-0 flex items-center">
-                  <Link href={route('dashboard')}>
-                    <ApplicationMark className="block h-9 w-auto" />
-                  </Link>
-                </div>
+    return (
+        <div className="min-h-screen text-gray-800 dark:text-gray-100">
+            <Head title={title}/>
 
-                {/* <!-- Navigation Links --> */}
-                <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                  <NavLink
-                    href={route('dashboard')}
-                    active={route().current('dashboard')}
-                  >
-                    Dashboard
-                  </NavLink>
-                </div>
-              </div>
-
-              <div className="hidden sm:flex sm:items-center sm:ml-6">
-                <div className="ml-3 relative">
-                  {/* <!-- Teams Dropdown --> */}
-                  {page.props.jetstream.hasTeamFeatures ? (
-                    <Dropdown
-                      align="right"
-                      width="60"
-                      renderTrigger={() => (
-                        <span className="inline-flex rounded-md">
-                          <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150"
-                          >
-                            {page.props.auth.user?.current_team?.name}
-
-                            <svg
-                              className="ml-2 -mr-0.5 h-4 w-4"
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </button>
-                        </span>
-                      )}
-                    >
-                      <div className="w-60">
-                        {/* <!-- Team Management --> */}
-                        {page.props.jetstream.hasTeamFeatures ? (
-                          <>
-                            <div className="block px-4 py-2 text-xs text-gray-400">
-                              Manage Team
-                            </div>
-
-                            {/* <!-- Team Settings --> */}
-                            <DropdownLink
-                              href={route('teams.show', [
-                                page.props.auth.user?.current_team!,
-                              ])}
-                            >
-                              Team Settings
-                            </DropdownLink>
-
-                            {page.props.jetstream.canCreateTeams ? (
-                              <DropdownLink href={route('teams.create')}>
-                                Create New Team
-                              </DropdownLink>
-                            ) : null}
-
-                            <div className="border-t border-gray-200 dark:border-gray-600" />
-
-                            {/* <!-- Team Switcher --> */}
-                            <div className="block px-4 py-2 text-xs text-gray-400">
-                              Switch Teams
-                            </div>
-
-                            {page.props.auth.user?.all_teams?.map(team => (
-                              <form
-                                onSubmit={e => switchToTeam(e, team)}
-                                key={team.id}
-                              >
-                                <DropdownLink as="button">
-                                  <div className="flex items-center">
-                                    {team.id ==
-                                      page.props.auth.user?.current_team_id && (
-                                      <svg
-                                        className="mr-2 h-5 w-5 text-green-400"
-                                        fill="none"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                      </svg>
-                                    )}
-                                    <div>{team.name}</div>
-                                  </div>
-                                </DropdownLink>
-                              </form>
-                            ))}
-                          </>
-                        ) : null}
-                      </div>
-                    </Dropdown>
-                  ) : null}
-                </div>
-
-                {/* <!-- Settings Dropdown --> */}
-                <div className="ml-3 relative">
-                  <Dropdown
-                    align="right"
-                    width="48"
-                    renderTrigger={() =>
-                      page.props.jetstream.managesProfilePhotos ? (
-                        <button className="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
-                          <img
-                            className="h-8 w-8 rounded-full object-cover"
-                            src={page.props.auth.user?.profile_photo_url}
-                            alt={page.props.auth.user?.name}
-                          />
+            <Banner/>
+            {/* Top Navbar */}
+            <header className="fixed top-0 left-0 right-0 z-50 h-10 px-6 bg-white border-b-2 border-gray-200">
+                <div className={'flex justify-between items-center h-full'}>
+                    <div className="relative flex items-center z-50">
+                        <div className="flex items-center mr-3">
+                            <a href={route('homepage')}>
+                                <span className="w-auto h-7 font-bold text-teal-500">FRAKTAL CMS</span>
+                            </a>
+                        </div>
+                        <button
+                            onClick={toggleSidebar}
+                            className={'p-0 rounded hover:text-emerald-200 dark:hover:text-gray-700 text-teal-500 dark:text-gray-300 font-mono'}
+                            title="Toggle sidebar"
+                        >
+                            {isCollapsed ? <IconX size={24} /> : <IconMenu2 size={24} />}
                         </button>
-                      ) : (
-                        <span className="inline-flex rounded-md">
-                          <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150"
-                          >
-                            {page.props.auth.user?.name}
+                        <div className={'mx-4'}></div>
 
-                            <svg
-                              className="ml-2 -mr-0.5 h-4 w-4"
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                              />
-                            </svg>
-                          </button>
-                        </span>
-                      )
-                    }
-                  >
-                    {/* <!-- Account Management --> */}
-                    <div className="block px-4 py-2 text-xs text-gray-400">
-                      Manage Account
+                        <div className="flex items-center py-4 overflow-x-auto whitespace-nowrap text-xs">
+                            <span className="text-gray-300 dark:text-gray-200">
+                                <IconHome size={16}/>
+                            </span>
+                            {breadcrumb && breadcrumb()}
+                            <a href="#" className="text-emerald-300 dark:text-gray-400 hover:text-emerald-600">
+                                {title}
+                            </a>
+                        </div>
                     </div>
+                    <div className={'text-sm text-gray-600'}>{renderHeader && renderHeader()} </div>
+                    <div className="flex items-center ">
+                        <div className="relative z-50">
+                            {/* Right Side */}
+                            <div className="flex items-center gap-4 ">
+                                {/* Team Dropdown */}
+                                {page.props.jetstream.hasTeamFeatures && (
+                                    <Dropdown
+                                        align="top-nav"
+                                        width="60"
+                                        renderTrigger={() => (
+                                            <button
+                                                className="relative p-2 mx-3 text-gray-400 transition-colors duration-300 rounded-full hover:bg-gray-100 hover:text-gray-600 focus:bg-gray-100">
+                                                <span className="sr-only">Notifications</span><span
+                                                className="absolute top-0 right-0 w-2 h-2 mt-1 mr-2 bg-green-700 rounded-full"></span><span
+                                                className="absolute top-0 right-0 w-2 h-2 mt-1 mr-2 bg-green-700 rounded-full animate-ping"></span>
+                                                <div className={'h-6 w-6'}>
+                                                    <IconUsersGroup/>
+                                                </div>
+                                            </button>
+                                        )}
+                                    >
+                                        <DropdownLink href={route('teams.show', [page.props.auth.user?.current_team])}>
+                                            Team Settings
+                                        </DropdownLink>
+                                        {page.props.jetstream.canCreateTeams && (
+                                            <DropdownLink href={route('teams.create')}>Create New Team</DropdownLink>
+                                        )}
+                                        <div className="border-t border-gray-200 dark:border-gray-600"/>
+                                        {page.props.auth.user?.all_teams?.map((team) => (
+                                            <form onSubmit={(e) => switchToTeam(e, team)} key={team.id}>
+                                                <DropdownLink as="button">
+                                                    {team.name}
+                                                    {team.id === page.props.auth.user?.current_team_id && (
+                                                        <span
+                                                            className="ml-2 inline-flex text-sm text-green-500 animate-pulse"><IconCheck
+                                                            size={18}/></span>
+                                                    )}
+                                                </DropdownLink>
+                                            </form>
+                                        ))}
+                                    </Dropdown>
+                                )}
+                            </div>
+                        </div>
 
-                    <DropdownLink href={route('profile.show')}>
-                      Profile
-                    </DropdownLink>
 
-                    {page.props.jetstream.hasApiFeatures ? (
-                      <DropdownLink href={route('api-tokens.index')}>
-                        API Tokens
-                      </DropdownLink>
-                    ) : null}
-
-                    <div className="border-t border-gray-200 dark:border-gray-600"></div>
-
-                    {/* <!-- Authentication --> */}
-                    <form onSubmit={logout}>
-                      <DropdownLink as="button">Log Out</DropdownLink>
-                    </form>
-                  </Dropdown>
+                        <button
+                            className="relative p-2 mx-3 text-gray-400 transition-colors duration-300 rounded-full hover:bg-gray-100 hover:text-gray-600 focus:bg-gray-100">
+                            <span className="sr-only">Notifications</span><span
+                            className="absolute top-0 right-0 w-2 h-2 mt-1 mr-2 bg-blue-700 rounded-full"></span><span
+                            className="absolute top-0 right-0 w-2 h-2 mt-1 mr-2 bg-blue-700 rounded-full animate-ping"></span>
+                            <div className={'h-6 w-6'}>
+                                <IconBell/>
+                            </div>
+                        </button>
+                    </div>
                 </div>
-              </div>
 
-              {/* <!-- Hamburger --> */}
-              <div className="-mr-2 flex items-center sm:hidden">
-                <button
-                  onClick={() =>
-                    setShowingNavigationDropdown(!showingNavigationDropdown)
-                  }
-                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out"
-                >
-                  <svg
-                    className="h-6 w-6"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      className={classNames({
-                        hidden: showingNavigationDropdown,
-                        'inline-flex': !showingNavigationDropdown,
-                      })}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                    <path
-                      className={classNames({
-                        hidden: !showingNavigationDropdown,
-                        'inline-flex': showingNavigationDropdown,
-                      })}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+            </header>
 
-          {/* <!-- Responsive Navigation Menu --> */}
-          <div
-            className={classNames('sm:hidden', {
-              block: showingNavigationDropdown,
-              hidden: !showingNavigationDropdown,
-            })}
-          >
-            <div className="pt-2 pb-3 space-y-1">
-              <ResponsiveNavLink
-                href={route('dashboard')}
-                active={route().current('dashboard')}
-              >
-                Dashboard
-              </ResponsiveNavLink>
-            </div>
+            {/* MAIN CONTENT */}
+            <div className="flex bg-gray-100 dark:bg-gray-900">
+                {/* SIDEBAR */}
+                <aside className={classNames(
+                    'fixed top-10 left-0 bottom-0 z-40 flex flex-col px-3 py-6 overflow-y-auto overflow-x-visible border-r-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300',
+                    isCollapsed ? 'w-18 items-center' : 'w-50'
+                )}>
+                    <div className="flex flex-col justify-between flex-1 mt-1">
+                        <nav className="-mx-2 space-y-6 ">
+                            <div className="space-y-3 ">
+                                {!isCollapsed && (
+                                    <label
+                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Main</label>
+                                )}
 
-            {/* <!-- Responsive Settings Options --> */}
-            <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-              <div className="flex items-center px-4">
-                {page.props.jetstream.managesProfilePhotos ? (
-                  <div className="flex-shrink-0 mr-3">
-                    <img
-                      className="h-10 w-10 rounded-full object-cover"
-                      src={page.props.auth.user?.profile_photo_url}
-                      alt={page.props.auth.user?.name}
-                    />
-                  </div>
-                ) : null}
+                                <SideLink
+                                    href={route('dashboard')}
+                                    active={route().current('dashboard')}
+                                    icon={
+                                        <div
+                                            className={'flex items-center justify-center text-gray-700 focus:outline-nones transition-colors duration-200 rounded-lg dark:text-gray-200 dark:hover:bg-gray-800 hover:bg-gray-100'}>
+                                            <div className={'h-6 w-6'}><IconLayoutDashboard/></div>
+                                        </div>
+                                    }
+                                    label="Dashboard"
+                                    collapsed={isCollapsed}
+                                />
+                            </div>
 
-                <div>
-                  <div className="font-medium text-base text-gray-800 dark:text-gray-200">
-                    {page.props.auth.user?.name}
-                  </div>
-                  <div className="font-medium text-sm text-gray-500">
-                    {page.props.auth.user?.email}
-                  </div>
-                </div>
-              </div>
+                            <div className="space-y-3 ">
+                                {!isCollapsed && (
+                                    <label
+                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Content</label>
+                                )}
+                            </div>
 
-              <div className="mt-3 space-y-1">
-                <ResponsiveNavLink
-                  href={route('profile.show')}
-                  active={route().current('profile.show')}
-                >
-                  Profile
-                </ResponsiveNavLink>
+                            <div className="space-y-3 ">
+                                {!isCollapsed && (
+                                    <label
+                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Page</label>
+                                )}
+                            </div>
+                        </nav>
 
-                {page.props.jetstream.hasApiFeatures ? (
-                  <ResponsiveNavLink
-                    href={route('api-tokens.index')}
-                    active={route().current('api-tokens.index')}
-                  >
-                    API Tokens
-                  </ResponsiveNavLink>
-                ) : null}
-
-                {/* <!-- Authentication --> */}
-                <form method="POST" onSubmit={logout}>
-                  <ResponsiveNavLink as="button">Log Out</ResponsiveNavLink>
-                </form>
-
-                {/* <!-- Team Management --> */}
-                {page.props.jetstream.hasTeamFeatures ? (
-                  <>
-                    <div className="border-t border-gray-200 dark:border-gray-600"></div>
-
-                    <div className="block px-4 py-2 text-xs text-gray-400">
-                      Manage Team
-                    </div>
-
-                    {/* <!-- Team Settings --> */}
-                    <ResponsiveNavLink
-                      href={route('teams.show', [
-                        page.props.auth.user?.current_team!,
-                      ])}
-                      active={route().current('teams.show')}
-                    >
-                      Team Settings
-                    </ResponsiveNavLink>
-
-                    {page.props.jetstream.canCreateTeams ? (
-                      <ResponsiveNavLink
-                        href={route('teams.create')}
-                        active={route().current('teams.create')}
-                      >
-                        Create New Team
-                      </ResponsiveNavLink>
-                    ) : null}
-
-                    <div className="border-t border-gray-200 dark:border-gray-600"></div>
-
-                    {/* <!-- Team Switcher --> */}
-                    <div className="block px-4 py-2 text-xs text-gray-400">
-                      Switch Teams
-                    </div>
-                    {page.props.auth.user?.all_teams?.map(team => (
-                      <form onSubmit={e => switchToTeam(e, team)} key={team.id}>
-                        <ResponsiveNavLink as="button">
-                          <div className="flex items-center">
-                            {team.id ==
-                              page.props.auth.user?.current_team_id && (
-                              <svg
-                                className="mr-2 h-5 w-5 text-green-400"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                              </svg>
+                        <div className="mt-6">
+                            <div className={'border-b border-gray-300/70'}></div>
+                            {/* User dropdown */}
+                            {!isCollapsed ? (
+                                <div className={classNames(
+                                    "flex items-center mt-3 border rounded-2xl border-gray-200 ",
+                                    isCollapsed ? "justify-center" : "justify-between"
+                                )}>
+                                    <Dropdown
+                                        align={isCollapsed ? "top-collapsed" : "top"}
+                                        width={isCollapsed ? "10" : "45"}
+                                        position={isCollapsed ? "fixed" : "absolute"}
+                                        renderTrigger={() => (
+                                            <button
+                                                className={`${!isCollapsed ? 'hover:bg-emerald-200 cursor-pointer' : ''} transition-colors duration-300 rounded-lg sm:px-4 sm:py-2 focus:outline-none`}>
+                                                <span className="sr-only">User Menu</span>
+                                                <div
+                                                    className={`${isCollapsed ? '-ml-4' : 'mx-0'} flex items-center justify-between gap-2 `}>
+                                                    <div
+                                                        className="hidden md:mx-1 md:flex md:flex-col md:items-end md:leading-tight">
+                                                        {!isCollapsed && (
+                                                            <div className={'flex flex-col items-start'}>
+                                                            <span
+                                                                className="font-semibold text-sm text-gray-800">{page.props.auth.user?.name}</span><span
+                                                                className="text-sm text-gray-600">Administrator</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {page.props.jetstream.managesProfilePhotos ? (
+                                                        <img
+                                                            className={`flex-shrink-0 w-10 h-10 overflow-hidden bg-gray-100 rounded-full md:mx-0 ${isCollapsed ? '' : ''}`}
+                                                            src={page.props.auth.user?.profile_photo_url}
+                                                            alt={page.props.auth.user?.name}
+                                                        />
+                                                    ) : (
+                                                        <span
+                                                            className={`flex-shrink-0 w-10 h-10 text-xs shadow-md flex items-center justify-center overflow-hidden bg-gray-100 rounded-full md:mx-0 ${isCollapsed ? 'hover:bg-emerald-200 cursor-pointer' : ''}`}>
+                                                    {page.props.auth.user?.name}
+                                                </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        )}
+                                    >
+                                        <DropdownLink href={route('profile.show')}>
+                                            <div className={'flex items-center justify-between cursor-pointer'}>
+                                                {!isCollapsed && (
+                                                    <div>Profile</div>
+                                                )}
+                                                <div><IconUserCircle size={24}/></div>
+                                            </div>
+                                        </DropdownLink>
+                                        {page.props.jetstream.hasApiFeatures && (
+                                            <DropdownLink href={route('api-tokens.index')}>
+                                                <div className={'flex items-center justify-between cursor-pointer'}>
+                                                    {!isCollapsed && (
+                                                        <div>API Token</div>
+                                                    )}
+                                                    <div><IconApi size={24}/></div>
+                                                </div>
+                                            </DropdownLink>
+                                        )}
+                                        <div className="border-t border-gray-200 dark:border-gray-600"/>
+                                        <form onSubmit={logout}>
+                                            <DropdownLink as="button">
+                                                <div className={'flex items-center justify-between cursor-pointer'}>
+                                                    {!isCollapsed && (
+                                                        <div>Logout</div>
+                                                    )}
+                                                    <div><IconLogout size={24}/></div>
+                                                </div>
+                                            </DropdownLink>
+                                        </form>
+                                    </Dropdown>
+                                </div>
+                            ) : (
+                                <div className={'flex flex-col gap-3'}>
+                                    <SideLink
+                                        href={route('profile.show')}
+                                        active={route().current('profile.show')}
+                                        icon={
+                                            <div
+                                                className={'flex items-center justify-center '}>
+                                                <div className={'h-6 w-6'}><IconUserCircle/></div>
+                                            </div>
+                                        }
+                                        label="Profile"
+                                        collapsed={isCollapsed}
+                                    />
+                                    {page.props.jetstream.hasApiFeatures && (
+                                        <SideLink
+                                            href={route('dashboard')}
+                                            active={route().current('dashboard')}
+                                            icon={
+                                                <div
+                                                    className={'flex items-center justify-center '}>
+                                                    <div className={'h-6 w-6'}><IconApi/></div>
+                                                </div>
+                                            }
+                                            label="Dashboard"
+                                            collapsed={isCollapsed}
+                                        />
+                                    )}
+                                    <div className={'flex items-center justify-center'}>
+                                        <form onSubmit={logout}>
+                                            <button className={'flex items-center justify-center cursor-pointer text-gray-500'}
+                                                type="submit"
+                                            >
+                                                <div>
+                                                    <div className={'h-6 w-6'}><IconLogout/></div>
+                                                </div>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             )}
-                            <div>{team.name}</div>
-                          </div>
-                        </ResponsiveNavLink>
-                      </form>
-                    ))}
-                  </>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </nav>
+                        </div>
+                    </div>
+                </aside>
 
-        {/* <!-- Page Heading --> */}
-        {renderHeader ? (
-          <header className="bg-white dark:bg-gray-800 shadow">
-            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-              {renderHeader()}
+                {/* Page Content */}
+                <main
+                    className="flex-1 ml-50 p-6 bg-gray-100 dark:bg-gray-900 z-10 relative overflow-visible">{children}</main>
             </div>
-          </header>
-        ) : null}
-
-        {/* <!-- Page Content --> */}
-        <main>{children}</main>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
