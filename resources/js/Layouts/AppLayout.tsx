@@ -157,33 +157,24 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                     <div className="flex flex-col justify-between flex-1 mt-1">
                         <nav className="-mx-2 space-y-6 ">
                             <div className="space-y-3 ">
-                                {!isCollapsed && (
-                                    <label
-                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Main</label>
-                                )}
 
-                                {SideMenu.map((item, idx) => (
-                                    <SideLinkGroup
-                                        key={idx}
-                                        {...item}
-                                        collapsed={isCollapsed}
-                                        currentRoute={route().current()}
-                                    />
+                                {SideMenu.map((section, idx) => (
+                                    <div key={idx} className="space-y-3">
+                                        {!isCollapsed && (
+                                            <label className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">
+                                                {section.group}
+                                            </label>
+                                        )}
+                                        {section.items.map((item, i) => (
+                                            <SideLinkGroup
+                                                key={i}
+                                                {...item}
+                                                collapsed={isCollapsed}
+                                                currentRoute={route().current()}
+                                            />
+                                        ))}
+                                    </div>
                                 ))}
-                            </div>
-
-                            <div className="space-y-3 ">
-                                {!isCollapsed && (
-                                    <label
-                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Content</label>
-                                )}
-                            </div>
-
-                            <div className="space-y-3 ">
-                                {!isCollapsed && (
-                                    <label
-                                        className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Page</label>
-                                )}
                             </div>
                         </nav>
 
