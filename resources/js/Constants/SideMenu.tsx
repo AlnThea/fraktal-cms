@@ -51,17 +51,17 @@ export const SideMenu: MenuGroup[] = [
         items: [
             {
                 label: 'Users',
-                route: 'users.index',
+                route: 'homepage',
                 icon: () => <IconUserCircle size={20}/>,
             },
             {
                 label: 'Settings',
-                route: 'settings',
+                route: 'homepage',
                 icon: () => <IconSettings size={20}/>,
             },
             {
                 label: 'Tags',
-                route: 'tags.index',
+                route: 'homepage',
                 icon: () => <IconTags size={20}/>,
             },
         ]
