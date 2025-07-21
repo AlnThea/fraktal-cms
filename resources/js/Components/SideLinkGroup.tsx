@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import React, { useState } from 'react';
 import classNames from 'classnames';
 import useRoute from '@/Hooks/useRoute';
-import type { MenuItem } from '@/Constants/sideMenu';
+import type { MenuItem } from '@/Constants/SideMenu';
 
 interface Props extends MenuItem {
     collapsed?: boolean;
@@ -12,7 +12,8 @@ interface Props extends MenuItem {
 export default function SideLinkGroup({ label, icon, route: routeName, children, collapsed = false, currentRoute }: Props) {
     const route = useRoute();
     const [open, setOpen] = useState(() =>
-        children?.some(child => currentRoute?.startsWith(child.route)) ?? false
+        children?.some(child => child.route && currentRoute?.startsWith(child.route)) ?? false
+
     );
 
     const isActive = routeName && currentRoute === routeName;
@@ -57,7 +58,7 @@ export default function SideLinkGroup({ label, icon, route: routeName, children,
                             key={idx}
                             href={route(item.route!)}
                             className={classNames(
-                                'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600',
+                                'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
                                 currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
                             )}
                         >

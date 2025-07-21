@@ -15,7 +15,7 @@ export interface MenuItem {
     children?: MenuItem[];
 }
 
-export const sideMenu: MenuItem[] = [
+export const SideMenu: MenuItem[] = [
     {
         label: 'Dashboard',
         route: 'dashboard',

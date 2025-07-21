@@ -10,7 +10,7 @@ import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
 import SideLink from '@/Components/SideLink';
-import { sideMenu } from '@/Constants/SideMenu';
+import { SideMenu } from '@/Constants/SideMenu';
 import SideLinkGroup from '@/Components/SideLinkGroup';
 import {
     IconBell,
@@ -162,7 +162,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                         className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Main</label>
                                 )}
 
-                                {sideMenu.map((item, idx) => (
+                                {SideMenu.map((item, idx) => (
                                     <SideLinkGroup
                                         key={idx}
                                         {...item}
