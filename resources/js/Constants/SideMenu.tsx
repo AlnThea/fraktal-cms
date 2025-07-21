@@ -19,11 +19,11 @@ export const SideMenu: MenuItem[] = [
     {
         label: 'Dashboard',
         route: 'dashboard',
-        icon: () => <IconLayoutDashboard />
+        icon: () => <IconLayoutDashboard size={20}/>
     },
     {
         label: 'Posts',
-        icon: () => <IconArticle />,
+        icon: () => <IconArticle size={20}/>,
         children: [
             { label: 'All Posts', route: 'homepage' },
             { label: 'Add Post', route: 'homepage' },
@@ -34,16 +34,16 @@ export const SideMenu: MenuItem[] = [
     {
         label: 'Users',
         route: 'users.index',
-        icon: () => <IconUserCircle />,
+        icon: () => <IconUserCircle size={20}/>,
     },
     {
         label: 'Settings',
         route: 'settings',
-        icon: () => <IconSettings />,
+        icon: () => <IconSettings size={20}/>,
     },
     {
         label: 'Tags',
         route: 'tags.index',
-        icon: () => <IconTags />,
+        icon: () => <IconTags size={20}/>,
     },
 ];
