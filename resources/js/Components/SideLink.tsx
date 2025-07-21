@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import React, { ReactNode } from 'react';
+import {Link} from '@inertiajs/react';
+import React, {ReactNode} from 'react';
 import classNames from 'classnames';
 
 interface Props {
@@ -10,13 +10,7 @@ interface Props {
     collapsed?: boolean;
 }
 
-export default function SideLink({
-                                    active,
-                                    href,
-                                    icon,
-                                    label,
-                                    collapsed = false,
-                                }: Props) {
+export default function SideLink({active, href, icon, label, collapsed = false,}: Props) {
     const classes = classNames(
         'flex px-2 py-2 transition-colors duration-300 transform rounded-lg',
         'text-emerald-600 dark:text-gray-200 hover:text-emerald-700 hover:bg-emerald-300 dark:hover:bg-gray-800  dark:hover:text-gray-200',

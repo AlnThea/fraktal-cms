@@ -10,6 +10,8 @@ import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
 import SideLink from '@/Components/SideLink';
+import { sideMenu } from '@/Constants/SideMenu';
+import SideLinkGroup from '@/Components/SideLinkGroup';
 import {
     IconBell,
     IconCheck,
@@ -17,7 +19,7 @@ import {
     IconUsersGroup,
     IconMenu2,
     IconX,
-    IconHome, IconLayoutDashboard, IconUserCircle, IconApi
+    IconHome, IconUserCircle, IconApi
 } from "@tabler/icons-react";
 
 interface Props {
@@ -160,18 +162,14 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                         className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">Main</label>
                                 )}
 
-                                <SideLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                    icon={
-                                        <div
-                                            className={'flex items-center justify-center text-gray-700 focus:outline-nones transition-colors duration-200 rounded-lg dark:text-gray-200 dark:hover:bg-gray-800 hover:bg-gray-100'}>
-                                            <div className={'h-6 w-6'}><IconLayoutDashboard/></div>
-                                        </div>
-                                    }
-                                    label="Dashboard"
-                                    collapsed={isCollapsed}
-                                />
+                                {sideMenu.map((item, idx) => (
+                                    <SideLinkGroup
+                                        key={idx}
+                                        {...item}
+                                        collapsed={isCollapsed}
+                                        currentRoute={route().current()}
+                                    />
+                                ))}
                             </div>
 
                             <div className="space-y-3 ">
