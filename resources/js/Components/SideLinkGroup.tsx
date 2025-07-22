@@ -37,8 +37,8 @@ export default function SideLinkGroup({
     return (
         <div>
             {children ? (
-                <div className={classNames(baseClasses, 'cursor-pointer')} onClick={toggleOpen}>
-                    <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
+                <div className={classNames(baseClasses, 'cursor-pointer relative group')} onClick={toggleOpen}>
+                <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
                     {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
                     {!collapsed && (
                         <svg
@@ -58,26 +58,47 @@ export default function SideLinkGroup({
                 </Link>
             )}
 
-            {/* Submenu */}
-            {!collapsed && children && open && (
-                <div className="ml-8 mt-1 space-y-1">
-                    {children.map((item, idx) => (
-                        <div className={'hover:border-l-5 hover:border-emerald-500'}>
-                            <Link
-                                key={idx}
-                                href={route(item.route!)}
-                                className={classNames(
-                                    'ml-3 block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
-                                    currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
-                                )}
-                            >
-                                {item.label}
-                            </Link>
+            {/* SUBMENU: tampilkan saat !collapsed + open ATAU collapsed + hover */}
+            {children && (
+                <>
+                    {/* Untuk normal (sidebar terbuka) */}
+                    {!collapsed && open && (
+                        <div className="ml-8 mt-1 space-y-1">
+                            {children.map((item, idx) => (
+                                <Link
+                                    key={idx}
+                                    href={route(item.route!)}
+                                    className={classNames(
+                                        'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
+                                        currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
+                                    )}
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
                         </div>
+                    )}
 
-                    ))}
-                </div>
+                    {/* collapsed (hover) */}
+                    {collapsed && (
+                        <div
+                            className="fixed right ml-17 -mt-10 z-50  group-hover:block bg-gray-800 text-white rounded-md shadow-lg p-2 space-y-1 min-w-[160px]"
+                        >
+                            {children.map((item, idx) => (
+                                <Link
+                                    key={idx}
+                                    href={route(item.route!)}
+                                    className="block px-3 py-1 text-sm hover:bg-emerald-600 rounded"
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
+                </>
             )}
+
         </div>
     );
 }
