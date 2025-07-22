@@ -82,7 +82,7 @@ export default function SideLinkGroup({
             )}
 
             {/* Submenu collapse is false */}
-            {!collapsed && open && (
+            {!collapsed &&children && open && (
                 <div className="ml-8 mt-1 space-y-1">
                     {children.map((item, idx) => (
                         <Link
