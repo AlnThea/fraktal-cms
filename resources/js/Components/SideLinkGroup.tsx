@@ -86,20 +86,23 @@ export default function SideLinkGroup({
 
             {/* Collapsed submenu on hover */}
             {children && collapsed && (
-                <div className="fixed ml-10 -mt-10 z-50 hidden group-hover:block bg-white text-gray-600 rounded-md shadow-xl p-2 space-y-1 min-w-[160px]">
-                    {children.map((item, idx) => (
-                        <div className={'hover:border-l-4 hover:border-emerald-600'}>
-                            <Link
-                                key={idx}
-                                href={route(item.route!)}
-                                className="block px-3 py-1 text-sm rounded"
-                            >
-                                {item.label}
-                            </Link>
-                        </div>
-                    ))}
+                <div className="fixed hidden group-hover:block ml-11 -mt-10 z-50 shadow-xl">
+                    <div className="absolute left-[-11px] top-2 w-2 h-2 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-white"></div>
+                    <div className="bg-white text-gray-600 rounded-md  p-2 space-y-1 min-w-[160px]">
+                        {children.map((item, idx) => (
+                            <div key={idx} className="hover:border-l-4 hover:border-emerald-600">
+                                <Link
+                                    href={route(item.route!)}
+                                    className="block px-3 py-1 text-sm rounded"
+                                >
+                                    {item.label}
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
+
 
             {/* Expanded submenu */}
             {!collapsed && children && open && (
