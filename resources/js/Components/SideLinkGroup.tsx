@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import classNames from 'classnames';
 import useRoute from '@/Hooks/useRoute';
 import type { MenuItem } from '@/Constants/SideMenu';
+import { router } from '@inertiajs/core';
 
 interface Props extends MenuItem {
     collapsed?: boolean;
     currentRoute?: string;
+    isLogout?: boolean;
 }
 
 export default function SideLinkGroup({
@@ -16,6 +18,7 @@ export default function SideLinkGroup({
                                           children,
                                           collapsed = false,
                                           currentRoute,
+                                          isLogout = false,
                                       }: Props) {
     const route = useRoute();
     const [open, setOpen] = useState(() =>
@@ -34,18 +37,36 @@ export default function SideLinkGroup({
         'text-emerald-600 dark:text-gray-200 hover:text-emerald-700 hover:bg-emerald-300 dark:hover:bg-gray-800'
     );
 
+    const renderContent = () => (
+        <>
+
+            <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
+            {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
+        </>
+    );
+
+    if (isLogout) {
+        return (
+            <div className="relative group">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        router.post(route('logout'));
+                    }}
+                >
+                    <button type="submit" className={baseClasses}>
+                        {renderContent()}
+                    </button>
+                </form>
+            </div>
+        );
+    }
+
     return (
         <div className="relative group">
             {children ? (
-                <div
-                    className={classNames(
-                        baseClasses,
-                        'cursor-pointer'
-                    )}
-                    onClick={toggleOpen}
-                >
-                    <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
-                    {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
+                <div className={classNames(baseClasses, 'cursor-pointer')} onClick={toggleOpen}>
+                    {renderContent()}
                     {!collapsed && (
                         <svg
                             className={classNames('w-4 h-4 transition-transform', open ? 'rotate-90' : '')}
@@ -59,30 +80,29 @@ export default function SideLinkGroup({
                 </div>
             ) : (
                 <Link href={route(routeName!)} className={baseClasses}>
-                    <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
-                    {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
+                    {renderContent()}
                 </Link>
             )}
 
-            {/* Submenu collapsed is true and on button hover */}
+            {/* Collapsed submenu on hover */}
             {children && collapsed && (
-                <div
-                    className="fixed ml-17 -mt-10 z-50 hidden group-hover:block bg-gray-800 text-white rounded-md shadow-lg p-2 space-y-1 min-w-[160px]"
-                >
+                <div className="fixed ml-10 -mt-10 z-50 hidden group-hover:block bg-white text-gray-600 rounded-md shadow-xl p-2 space-y-1 min-w-[160px]">
                     {children.map((item, idx) => (
-                        <Link
-                            key={idx}
-                            href={route(item.route!)}
-                            className="block px-3 py-1 text-sm hover:bg-emerald-600 rounded"
-                        >
-                            {item.label}
-                        </Link>
+                        <div className={'hover:border-l-4 hover:border-emerald-600'}>
+                            <Link
+                                key={idx}
+                                href={route(item.route!)}
+                                className="block px-3 py-1 text-sm rounded"
+                            >
+                                {item.label}
+                            </Link>
+                        </div>
                     ))}
                 </div>
             )}
 
-            {/* Submenu collapse is false */}
-            {!collapsed &&children && open && (
+            {/* Expanded submenu */}
+            {!collapsed && children && open && (
                 <div className="ml-8 mt-1 space-y-1">
                     {children.map((item, idx) => (
                         <Link
@@ -99,6 +119,5 @@ export default function SideLinkGroup({
                 </div>
             )}
         </div>
-
     );
 }

@@ -9,7 +9,6 @@ import useTypedPage from '@/Hooks/useTypedPage';
 import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
-import SideLink from '@/Components/SideLink';
 import { SideMenu } from '@/Constants/SideMenu';
 import SideLinkGroup from '@/Components/SideLinkGroup';
 import {
@@ -153,36 +152,40 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                     {/* SIDEBAR */}
                     <aside className={classNames(
                         'fixed top-10 left-0 bottom-0 z-40 flex flex-col px-3 py-6 overflow-hidden overflow-x-visible border-r-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300',
-                        isCollapsed ? 'w-18 items-center' : 'w-50'
+                        isCollapsed ? 'w-15 items-center' : 'w-50'
                     )}>
                         <div className="flex flex-col justify-between flex-1 mt-1">
-                            <nav className="-mx-2 space-y-6 ">
+                            <nav className=" space-y-6 ">
                                 <div className="space-y-3 ">
+                                    {SideMenu.map((section, idx) => {
+                                        const topItems = section.items.filter(item => item.position !== 'bottom');
+                                        if (topItems.length === 0) return null;
 
-                                    {SideMenu.map((section, idx) => (
-                                        <div key={idx} className="space-y-3">
-                                            {!isCollapsed && (
-                                                <label className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">
-                                                    {section.group}
-                                                </label>
-                                            )}
-                                            {section.items.map((item, i) => (
-                                                <SideLinkGroup
-                                                    key={i}
-                                                    {...item}
-                                                    collapsed={isCollapsed}
-                                                    currentRoute={route().current()}
-                                                />
-                                            ))}
-                                        </div>
-                                    ))}
+                                        return (
+                                            <div key={idx} className="space-y-3">
+                                                {!isCollapsed && (
+                                                    <label className="px-3 text-xs text-gray-500 uppercase dark:text-gray-400">
+                                                        {section.group}
+                                                    </label>
+                                                )}
+                                                {topItems.map((item, i) => (
+                                                    <SideLinkGroup
+                                                        key={i}
+                                                        {...item}
+                                                        collapsed={isCollapsed}
+                                                        currentRoute={route().current()}
+                                                    />
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </nav>
 
                             <div className="mt-6">
                                 <div className={'border-b border-gray-300/70'}></div>
-                                {/* User dropdown */}
-                                {!isCollapsed ? (
+                                {/* User dropdown when collapse is false */}
+                                {!isCollapsed && (
                                     <div className={classNames(
                                         "flex items-center mt-3 border rounded-2xl border-gray-200 ",
                                         isCollapsed ? "justify-center" : "justify-between"
@@ -193,7 +196,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                             position={isCollapsed ? "fixed" : "absolute"}
                                             renderTrigger={() => (
                                                 <button
-                                                    className={`${!isCollapsed ? 'hover:bg-emerald-200 cursor-pointer' : ''} transition-colors duration-300 rounded-lg sm:px-4 sm:py-2 focus:outline-none`}>
+                                                    className={`${!isCollapsed ? 'hover:bg-emerald-300 cursor-pointer' : ''} transition-colors duration-300 rounded-lg sm:px-4 sm:py-2 focus:outline-none`}>
                                                     <span className="sr-only">User Menu</span>
                                                     <div
                                                         className={`${isCollapsed ? '-ml-4' : 'mx-0'} flex items-center justify-between gap-2 `}>
@@ -254,47 +257,45 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                             </form>
                                         </Dropdown>
                                     </div>
-                                ) : (
-                                    <div className={'flex flex-col gap-3'}>
-                                        <SideLink
-                                            href={route('profile.show')}
-                                            active={route().current('profile.show')}
-                                            icon={
-                                                <div
-                                                    className={'flex items-center justify-center '}>
-                                                    <div className={'h-6 w-6'}><IconUserCircle/></div>
+                                )}
+
+                                {isCollapsed && (
+                                    <div >
+                                        {SideMenu.map((section, idx) => {
+                                            const bottomItems = section.items.filter(item => item.position === 'bottom');
+                                            if (bottomItems.length === 0) return null;
+
+                                            return (
+                                                <div key={idx} className="space-y-3">
+                                                    {bottomItems.map((item, i) => {
+                                                        if (item.route === 'logout') {
+                                                            return (
+                                                                <SideLinkGroup
+                                                                    key={i}
+                                                                    {...item}
+                                                                    collapsed={isCollapsed}
+                                                                    currentRoute={route().current()}
+                                                                />
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <SideLinkGroup
+                                                                key={i}
+                                                                {...item}
+                                                                collapsed={isCollapsed}
+                                                                currentRoute={route().current()}
+                                                            />
+                                                        );
+                                                    })}
                                                 </div>
-                                            }
-                                            label="Profile"
-                                            collapsed={isCollapsed}
-                                        />
-                                        {page.props.jetstream.hasApiFeatures && (
-                                            <SideLink
-                                                href={route('dashboard')}
-                                                active={route().current('dashboard')}
-                                                icon={
-                                                    <div
-                                                        className={'flex items-center justify-center '}>
-                                                        <div className={'h-6 w-6'}><IconApi/></div>
-                                                    </div>
-                                                }
-                                                label="Dashboard"
-                                                collapsed={isCollapsed}
-                                            />
-                                        )}
-                                        <div className={'flex items-center justify-center'}>
-                                            <form onSubmit={logout}>
-                                                <button className={'flex items-center justify-center cursor-pointer text-gray-500'}
-                                                        type="submit"
-                                                >
-                                                    <div>
-                                                        <div className={'h-6 w-6'}><IconLogout/></div>
-                                                    </div>
-                                                </button>
-                                            </form>
-                                        </div>
+                                            );
+                                        })}
+
+
                                     </div>
                                 )}
+
                             </div>
                         </div>
                     </aside>
