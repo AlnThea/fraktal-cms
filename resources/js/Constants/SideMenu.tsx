@@ -58,6 +58,12 @@ export const SideMenu: MenuGroup[] = [
                 label: 'Settings',
                 route: 'homepage',
                 icon: () => <IconSettings size={20}/>,
+                children: [
+                    { label: 'All Posts', route: 'homepage' },
+                    { label: 'Add Post', route: 'homepage' },
+                    { label: 'Categories', route: 'homepage' },
+                    { label: 'Tags', route: 'homepage' },
+                ],
             },
             {
                 label: 'Tags',

@@ -35,10 +35,16 @@ export default function SideLinkGroup({
     );
 
     return (
-        <div>
+        <div className="relative group">
             {children ? (
-                <div className={classNames(baseClasses, 'cursor-pointer relative group')} onClick={toggleOpen}>
-                <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
+                <div
+                    className={classNames(
+                        baseClasses,
+                        'cursor-pointer'
+                    )}
+                    onClick={toggleOpen}
+                >
+                    <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
                     {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
                     {!collapsed && (
                         <svg
@@ -58,47 +64,41 @@ export default function SideLinkGroup({
                 </Link>
             )}
 
-            {/* SUBMENU: tampilkan saat !collapsed + open ATAU collapsed + hover */}
-            {children && (
-                <>
-                    {/* Untuk normal (sidebar terbuka) */}
-                    {!collapsed && open && (
-                        <div className="ml-8 mt-1 space-y-1">
-                            {children.map((item, idx) => (
-                                <Link
-                                    key={idx}
-                                    href={route(item.route!)}
-                                    className={classNames(
-                                        'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
-                                        currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
-                                    )}
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* collapsed (hover) */}
-                    {collapsed && (
-                        <div
-                            className="fixed right ml-17 -mt-10 z-50  group-hover:block bg-gray-800 text-white rounded-md shadow-lg p-2 space-y-1 min-w-[160px]"
+            {/* Submenu collapsed is true and on button hover */}
+            {children && collapsed && (
+                <div
+                    className="fixed ml-17 -mt-10 z-50 hidden group-hover:block bg-gray-800 text-white rounded-md shadow-lg p-2 space-y-1 min-w-[160px]"
+                >
+                    {children.map((item, idx) => (
+                        <Link
+                            key={idx}
+                            href={route(item.route!)}
+                            className="block px-3 py-1 text-sm hover:bg-emerald-600 rounded"
                         >
-                            {children.map((item, idx) => (
-                                <Link
-                                    key={idx}
-                                    href={route(item.route!)}
-                                    className="block px-3 py-1 text-sm hover:bg-emerald-600 rounded"
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-
-                </>
+                            {item.label}
+                        </Link>
+                    ))}
+                </div>
             )}
 
+            {/* Submenu collapse is false */}
+            {!collapsed && open && (
+                <div className="ml-8 mt-1 space-y-1">
+                    {children.map((item, idx) => (
+                        <Link
+                            key={idx}
+                            href={route(item.route!)}
+                            className={classNames(
+                                'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
+                                currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
+                            )}
+                        >
+                            {item.label}
+                        </Link>
+                    ))}
+                </div>
+            )}
         </div>
+
     );
 }
