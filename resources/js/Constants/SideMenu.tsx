@@ -52,6 +52,15 @@ export const SideMenu: MenuGroup[] = [
                 ],
                 position: 'top',
             },
+            {
+                label: 'Pages',
+                icon: () => <IconArticle size={20}/>,
+                children: [
+                    { label: 'All Pages', route: 'pages.index' },
+                    { label: 'New Pages', route: 'pages.create' },
+                ],
+                position: 'top',
+            },
         ]
     },
     {

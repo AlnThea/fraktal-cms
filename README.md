@@ -1,13 +1,13 @@
-<p align="center">
+<p >
   <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo">
 </p>
 
-<p align="center">
+<p >
   <strong>Fraktal CMS</strong><br>
   A modern content management system powered by Laravel 12, Jetstream, Inertia.js, React, and Tailwind CSS v4.
 </p>
 
-<p align="center">
+<p>
   <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
   <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
   <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
@@ -31,7 +31,7 @@
 - 🧩 Modular CMS structure
 - ⚡ Built with Laravel 12 + Jetstream (Inertia.js / React)
 - 🎨 Tailwind CSS v4.x design system
-- 🛠️ Rich page editor using React Page (coming soon)
+- 🛠️ Rich page editor using GrapeJs (coming soon)
 - 🔐 Secure authentication, 2FA, and profile management via Jetstream
 - 📦 Extensible components, page blocks, and API-ready
 
@@ -41,7 +41,7 @@
 <summary>🛠 Technology Stack</summary>
 
 - **Backend:** Laravel 12, Jetstream, Eloquent ORM
-- **Frontend:** React.js, Inertia.js, React Page (Editor)
+- **Frontend:** React.js, Inertia.js, GrapeJs (Editor)
 - **Styling:** Tailwind CSS 4.x
 - **Auth System:** Laravel Jetstream (Inertia scaffolding)
 - **Build Tools:** Vite, PostCSS, Babel, NPM
@@ -55,7 +55,7 @@ We are actively working on:
 
 - [x] Laravel 12 + Inertia + Jetstream setup
 - [x] Tailwind CSS v4 integration
-- [ ] Editor component (React Page)
+- [ ] Editor component (RGrapeJs)
 - [ ] Admin dashboard layout
 - [ ] Block-based content editor
 - [ ] Page builder and preview mode
@@ -93,7 +93,7 @@ Planned:
 
 ## 👤 Developed by Terra Core X
 
-Fraktal CMS is developed and maintained by **[Terra Core X](#)** — a creative developer collective focused on building robust open-source tools and modular systems for modern web development.
+Fraktal CMS is developed and maintained by **[Terra Core X]()** — a creative developer collective focused on building robust open-source tools and modular systems for modern web development.
 
 If you're interested in collaboration, feel free to reach out or open an issue/discussion.
 

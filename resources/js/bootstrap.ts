@@ -4,15 +4,21 @@ import _ from 'lodash';
 window._ = _;
 
 /**
- * We'll load the axios HTTP library which allows us to easily issue requests
- * to our Laravel back-end. This library automatically handles sending the
- * CSRF token as a header based on the value of the "XSRF" token cookie.
+ * Konfigurasi Axios untuk Laravel
  */
+const token = document.head.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.getAttribute('content');
 
-(window as any).axios = axios;
+if (token) {
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+} else {
+    console.warn('⚠️ CSRF token not found! Laravel mungkin akan blokir POST request!');
+}
 
-(window as any).axios.defaults.headers.common['X-Requested-With'] =
-  'XMLHttpRequest';
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+axios.defaults.withCredentials = true;
+
+// ✅ Assign ke window.setelah deklarasi global ada
+window.axios = axios;
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening
@@ -21,7 +27,6 @@ window._ = _;
  */
 
 // import Echo from 'laravel-echo';
-
 // import Pusher from 'pusher-js';
 // window.Pusher = Pusher;
 
