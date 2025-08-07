@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Page;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class PageController extends Controller
@@ -14,7 +15,9 @@ class PageController extends Controller
     public function index()
     {
         return Inertia::render('Pages/Index', [
-            'pages' => Page::latest()->get()
+            'pages' => Page::with('author')
+                ->select('id', 'title', 'status', 'created_at', 'updated_at', 'users_id')
+                ->get()
         ]);
     }
 
@@ -23,7 +26,7 @@ class PageController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Pages/Create');
+        return Inertia::render('Pages/NewPage');
     }
 
     /**
@@ -31,21 +34,38 @@ class PageController extends Controller
      */
     public function store(Request $request)
     {
-        \Log::info('📥 Request masuk ke store()', $request->all());
-
+        // Validasi input dari frontend
         $request->validate([
             'title' => 'required|string',
             'content' => 'nullable|array',
         ]);
 
+        // Pastikan pengguna sudah login
+        if (Auth::check()) {
+            $userId = Auth::user()->id;
+        } else {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        // Mengambil data dari request
+        $pageData = $request->all();
+
+        // Pastikan data 'content' adalah array/objek sebelum disimpan
+        if (is_string($pageData['content'])) {
+            $pageData['content'] = json_decode($pageData['content'], true);
+        }
+
+        // Menyimpan halaman ke database
         $page = Page::create([
-            'title' => $request->title,
-            'content' => $request->content,
+            'title' => $pageData['title'],
+            'content' => $pageData['content'],
+            'users_id' => $userId,
+            'status' => 'draft', // Default status
+            'type_post' => 'pages', // Default type
         ]);
 
         return response()->json(['success' => true, 'id' => $page->id]);
     }
-
 
     /**
      * Show the form for editing the specified resource.
@@ -67,9 +87,17 @@ class PageController extends Controller
             'content' => 'nullable|array',
         ]);
 
-        $page->update(attributes: [
-            'title' => $request->title,
-            'content' => $request->content,
+        // Mengambil data dari request
+        $pageData = $request->all();
+
+        // Pastikan data 'content' adalah array/objek sebelum disimpan
+        if (is_string($pageData['content'])) {
+            $pageData['content'] = json_decode($pageData['content'], true);
+        }
+
+        $page->update([
+            'title' => $pageData['title'],
+            'content' => $pageData['content'],
         ]);
 
         return redirect()->route('pages.index')->with('success', 'Page updated!');

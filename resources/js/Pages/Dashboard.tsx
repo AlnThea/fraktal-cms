@@ -18,40 +18,14 @@ export default function Dashboard() {
         >
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
+                    <div className=" dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
                         <Welcome/>
 
                         <div className={'p-5 bg-green-600 text-white'}> YAHOO</div>
                     </div>
                 </div>
             </div>
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
-                        <Welcome/>
 
-                        <div className={'p-5 bg-green-600 text-white'}> YAHOO</div>
-                    </div>
-                </div>
-            </div>
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
-                        <Welcome/>
-
-                        <div className={'p-5 bg-green-600 text-white'}> YAHOO</div>
-                    </div>
-                </div>
-            </div>
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
-                        <Welcome/>
-
-                        <div className={'p-5 bg-green-600 text-white'}> YAHOO</div>
-                    </div>
-                </div>
-            </div>
         </AppLayout>
     );
 }

@@ -13,9 +13,14 @@ return new class extends Migration
     {
         Schema::create('pages', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('users_id'); // Menambahkan kolom users_id
+            $table->foreign('users_id')->references('id')->on('users')->onDelete('cascade'); // Relasi ke tabel users
             $table->string('title');
+            $table->string('status')->default('draft');
+            $table->enum('type_post', ['post', 'pages'])->default('post');
             $table->json('content')->nullable();
             $table->timestamps();
+
         });
     }
 

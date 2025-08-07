@@ -53,7 +53,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
     };
 
     return (
-        <div className="min-h-screen text-gray-800 dark:text-gray-100">
+        <div className="min-h-screen bg-gray-200 text-gray-800 dark:text-gray-100">
             <Head title={title}/>
 
             <Banner/>
@@ -147,7 +147,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
             </header>
 
             {/* MAIN CONTENT */}
-            <div className="flex bg-gray-100 dark:bg-gray-900">
+            <div className="flex  dark:bg-gray-900">
                 <div className={'relative'}>
                     {/* SIDEBAR */}
                     <aside className={classNames(
@@ -302,7 +302,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
 
                     {/* Page Content */}
                     <main
-                        className="flex-1 ml-50 p-6 bg-gray-100 dark:bg-gray-900 z-10 relative overflow-visible">{children}</main>
+                        className="flex-1 ml-50 p-6  dark:bg-gray-900 z-10 relative overflow-visible">{children}</main>
                 </div>
 
             </div>
