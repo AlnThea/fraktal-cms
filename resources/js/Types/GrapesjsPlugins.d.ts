@@ -16,3 +16,6 @@ declare module 'grapesjs-lory-slider';
 declare module 'grapesjs-typed';
 declare module 'grapesjs-custom-code';
 declare module 'grapesjs-tooltip';
+declare module 'grapesjs-tabs';
+declare module 'grapesjs-component-code-editor';
+declare module 'grapesjs-rulers';
