@@ -1,13 +1,12 @@
 // resources/js/Pages/NewPage.tsx
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, lazy, Suspense } from 'react';
 import { Head } from '@inertiajs/react';
-import Editor from '@/Components/Editor';
 import axios from 'axios';
 import { route } from 'ziggy-js';
 import Banner from '@/Components/Banner';
 import AppLayout from '@/Layouts/AppLayout';
-
+const Editor = lazy(() => import('@/Components/Editor'));
 export default function NewPage() {
     const grapesEditorRef = useRef<any>(null);
     const [pageId, setPageId] = useState<number | null>(null);
@@ -105,7 +104,9 @@ export default function NewPage() {
 
                 <div className="flex pt-20 dark:bg-gray-900">
                     <main className="w-screen pr-6 z-10 relative overflow-visible">
-                        <Editor editorRef={grapesEditorRef} />
+                        <Suspense fallback={<div>Loading Editor...</div>}>
+                            <Editor editorRef={grapesEditorRef} />
+                        </Suspense>
                     </main>
                 </div>
             </div>

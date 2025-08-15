@@ -67,7 +67,6 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 gjsPostCSS,
                 gjspresetWebpage,
                 gjsNewsletter,
-
             ],
             pluginsOpts: {
                 'grapesjs-tailwindcss-plugin': {
