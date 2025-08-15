@@ -8,6 +8,7 @@ use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 
 class PageController extends Controller
 {
@@ -38,6 +39,7 @@ class PageController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255',
             'content' => 'nullable|array',
         ]);
 
@@ -53,15 +55,18 @@ class PageController extends Controller
             $pageData['content'] = json_decode($pageData['content'], true);
         }
 
+        // Tangani slug untuk memastikan keunikan
+        $slug = $this->generateUniqueSlug($request->title, $request->slug);
+
         $page = Page::create([
             'title' => $pageData['title'],
+            'slug' => $slug, // Menggunakan slug yang sudah dijamin unik
             'content' => $pageData['content'],
             'users_id' => $userId,
             'status' => 'draft',
             'type_post' => 'pages',
         ]);
 
-        // Mengembalikan respons JSON dengan ID halaman yang baru dibuat
         return response()->json(['success' => true, 'id' => $page->id]);
     }
 
@@ -82,6 +87,7 @@ class PageController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255',
             'content' => 'nullable|array',
         ]);
 
@@ -91,12 +97,15 @@ class PageController extends Controller
             $pageData['content'] = json_decode($pageData['content'], true);
         }
 
+        // Tangani slug untuk memastikan keunikan saat update
+        $slug = $this->generateUniqueSlug($request->title, $request->slug, $page->id);
+
         $page->update([
             'title' => $pageData['title'],
+            'slug' => $slug, // Menggunakan slug yang sudah dijamin unik
             'content' => $pageData['content'],
         ]);
 
-        // Mengembalikan respons JSON untuk memberi tahu frontend bahwa update berhasil
         return response()->json(['success' => true, 'id' => $page->id]);
     }
 
@@ -108,5 +117,35 @@ class PageController extends Controller
         $page->delete();
 
         return redirect()->route('pages.index')->with('success', 'Page deleted!');
+    }
+
+    /**
+     * Generate a unique slug for the page.
+     */
+    protected function generateUniqueSlug(string $title, string $baseSlug, ?int $pageId = null): string
+    {
+        // Gunakan base slug dari frontend, atau generate jika kosong
+        $slug = $baseSlug ?: Str::slug($title, '-');
+
+        $originalSlug = $slug;
+        $count = 1;
+        $query = Page::where('slug', $slug);
+
+        // Abaikan halaman saat ini saat update
+        if ($pageId) {
+            $query->where('id', '!=', $pageId);
+        }
+
+        while ($query->exists()) {
+            $slug = "{$originalSlug}-{$count}";
+            $query = Page::where('slug', $slug);
+
+            if ($pageId) {
+                $query->where('id', '!=', $pageId);
+            }
+            $count++;
+        }
+
+        return $slug;
     }
 }

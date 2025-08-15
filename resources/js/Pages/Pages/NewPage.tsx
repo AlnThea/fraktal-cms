@@ -8,7 +8,7 @@ import Banner from '@/Components/Banner';
 import AppLayout from '@/Layouts/AppLayout';
 import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
-import {IconHome} from "@tabler/icons-react";
+import {IconArrowBackUp, IconHome} from "@tabler/icons-react";
 
 const Editor = lazy(() => import('@/Components/Editor'));
 
@@ -17,6 +17,26 @@ export default function NewPage() {
     const [pageId, setPageId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [pageTitle, setPageTitle] = useState('Untitled Page');
+    const [pageSlug, setPageSlug] = useState('untitled-page'); // State baru untuk slug
+
+    // Fungsi untuk menghasilkan slug dari judul
+    const generateSlug = (title: string): string => {
+        return title
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')       // Ganti spasi dengan tanda hubung
+            .replace(/[^\w-]+/g, '')     // Hapus karakter non-word
+            .replace(/--+/g, '-')        // Ganti multiple tanda hubung
+            .slice(0, 255);               // Batasi panjang slug hingga 255 karakter
+    };
+
+    // Menangani perubahan input judul
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const title = e.target.value;
+        setPageTitle(title);
+        setPageSlug(generateSlug(title));
+    };
 
     const handleSaveOrUpdate = () => {
         const editor = grapesEditorRef.current;
@@ -36,7 +56,8 @@ export default function NewPage() {
             method: method,
             url: url,
             data: {
-                title: pageTitle, // Menggunakan state pageTitle
+                title: pageTitle,
+                slug: pageSlug, // Mengirim slug bersama data
                 content: projectData,
             },
         })
@@ -84,7 +105,13 @@ export default function NewPage() {
                         <a href={route('homepage')}>
                             <span className="w-auto h-7 font-bold text-teal-500">FRAKTAL CMS</span>
                         </a>
-                        <div className={'mx-4'}></div>
+                        <div className={'mx-2'}></div>
+                        <span className="text-gray-300 dark:text-gray-200">
+                            <a href={route('pages.index')} title={'Back to Pages'} className="cursor-pointer hover:text-emerald-600">
+                                <IconArrowBackUp size={16}/>
+                            </a>
+                        </span>
+                        <div className={'mx-2'}></div>
                         <span className="text-gray-300 dark:text-gray-200">
                                 <IconHome size={16}/>
                         </span>
@@ -116,11 +143,10 @@ export default function NewPage() {
                                 className={'bg-white w-full h-13 rounded-none pl-4 text-lg font-semibold focus:border-none border-none shadow-none '}
                                 placeholder={'Title'}
                                 value={pageTitle}
-                                onChange={(e) => setPageTitle(e.target.value)}
+                                onChange={handleTitleChange}
                             />
-                            <span className="absolute mx-4 bottom-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Slug:</span>
+                            <span className="absolute mx-4 bottom-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Slug: <span className="text-sm font-medium">{pageSlug}</span></span>
                         </div>
-
                         <Suspense fallback={<div>Loading Editor...</div>}>
                             <Editor editorRef={grapesEditorRef}/>
                         </Suspense>
