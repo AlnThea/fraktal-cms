@@ -1,42 +1,59 @@
-// NewPage.tsx
-import React, { useRef } from 'react';
+// resources/js/Pages/NewPage.tsx
+
+import React, { useRef, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import Editor from '@/Components/Editor';
 import axios from 'axios';
 import { route } from 'ziggy-js';
 import Banner from '@/Components/Banner';
+import AppLayout from '@/Layouts/AppLayout';
 
 export default function NewPage() {
-    const grapesEditorRef = useRef<any>(null); // Referensi untuk editor
+    const grapesEditorRef = useRef<any>(null);
+    const [pageId, setPageId] = useState<number | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [pageTitle, setPageTitle] = useState('Untitled Page');
 
-    const handleSave = () => {
+    // Menangani aksi simpan atau update
+    const handleSaveOrUpdate = () => {
         const editor = grapesEditorRef.current;
-        if (editor) {
-            // Mengambil project data dari editor
-            const projectData = editor.getProjectData();
-
-            // Mengambil HTML dan CSS jika diperlukan
-            // const htmlContent = editor.getHtml();
-            // const cssContent = editor.getCss();
-
-            console.log('📦 Project Data:', projectData);
-
-            // Mengirim data ke server
-            axios.post('/pages', {
-                title: 'Untitled Page',
-                content: projectData, // Kirim projectData, bukan hanya HTML/CSS
-            })
-                .then((res) => {
-                    console.log('✅ Disimpan ke server:', res.data);
-                    alert('Disimpan!');
-                })
-                .catch((err) => {
-                    console.error('❌ Gagal simpan:', err);
-                    alert('Gagal simpan!');
-                });
-        } else {
-            alert('Editor tidak siap.');
+        if (!editor || isSaving) {
+            return;
         }
+
+        setIsSaving(true);
+        const projectData = editor.getProjectData();
+
+        // Menentukan URL dan metode HTTP berdasarkan status pageId
+        const url = pageId
+            ? route('pages.update', { page: pageId })
+            : route('pages.store');
+        const method = pageId ? 'put' : 'post';
+
+        axios({
+            method: method,
+            url: url,
+            data: {
+                title: pageTitle,
+                content: projectData,
+            },
+        })
+            .then((res) => {
+                console.log('✅ Berhasil disimpan/diupdate:', res.data);
+                alert('Berhasil disimpan!');
+
+                // Jika ini adalah POST request pertama, simpan ID halaman
+                if (method === 'post' && res.data.id) {
+                    setPageId(res.data.id);
+                }
+            })
+            .catch((err) => {
+                console.error('❌ Gagal menyimpan/mengupdate:', err.response || err);
+                alert('Gagal menyimpan!');
+            })
+            .finally(() => {
+                setIsSaving(false);
+            });
     };
 
     const handleLoad = () => {
@@ -46,7 +63,7 @@ export default function NewPage() {
         if (input && editor) {
             try {
                 const data = JSON.parse(input);
-                editor.loadProjectData(data); // Muat data ke editor
+                editor.loadProjectData(data);
             } catch (e) {
                 alert('Data tidak valid');
                 console.error('❌ JSON Parse Error:', e);
@@ -67,14 +84,15 @@ export default function NewPage() {
                             <span className="w-auto h-7 font-bold text-teal-500">FRAKTAL CMS</span>
                         </a>
                         <span className="mx-3 text-gray-300">/</span>
-                        <span className="text-emerald-600">New Page</span>
+                        <span className="text-emerald-600">{pageId ? 'Edit Page' : 'New Page'}</span>
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={handleSave}
-                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-700"
+                            onClick={handleSaveOrUpdate}
+                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-700 disabled:bg-gray-400"
+                            disabled={isSaving}
                         >
-                            Simpan
+                            {pageId ? 'Update' : 'Simpan'}
                         </button>
                         <button
                             onClick={handleLoad}
@@ -87,7 +105,7 @@ export default function NewPage() {
 
                 <div className="flex pt-20 dark:bg-gray-900">
                     <main className="w-screen pr-6 z-10 relative overflow-visible">
-                        <Editor editorRef={grapesEditorRef} /> {/* Kirim ref ke Editor */}
+                        <Editor editorRef={grapesEditorRef} />
                     </main>
                 </div>
             </div>

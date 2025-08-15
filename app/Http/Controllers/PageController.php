@@ -1,5 +1,7 @@
 <?php
 
+// app/Http/Controllers/PageController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Page;
@@ -34,36 +36,32 @@ class PageController extends Controller
      */
     public function store(Request $request)
     {
-        // Validasi input dari frontend
         $request->validate([
             'title' => 'required|string',
             'content' => 'nullable|array',
         ]);
 
-        // Pastikan pengguna sudah login
         if (Auth::check()) {
             $userId = Auth::user()->id;
         } else {
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
-        // Mengambil data dari request
         $pageData = $request->all();
 
-        // Pastikan data 'content' adalah array/objek sebelum disimpan
         if (is_string($pageData['content'])) {
             $pageData['content'] = json_decode($pageData['content'], true);
         }
 
-        // Menyimpan halaman ke database
         $page = Page::create([
             'title' => $pageData['title'],
             'content' => $pageData['content'],
             'users_id' => $userId,
-            'status' => 'draft', // Default status
-            'type_post' => 'pages', // Default type
+            'status' => 'draft',
+            'type_post' => 'pages',
         ]);
 
+        // Mengembalikan respons JSON dengan ID halaman yang baru dibuat
         return response()->json(['success' => true, 'id' => $page->id]);
     }
 
@@ -87,10 +85,8 @@ class PageController extends Controller
             'content' => 'nullable|array',
         ]);
 
-        // Mengambil data dari request
         $pageData = $request->all();
 
-        // Pastikan data 'content' adalah array/objek sebelum disimpan
         if (is_string($pageData['content'])) {
             $pageData['content'] = json_decode($pageData['content'], true);
         }
@@ -100,7 +96,8 @@ class PageController extends Controller
             'content' => $pageData['content'],
         ]);
 
-        return redirect()->route('pages.index')->with('success', 'Page updated!');
+        // Mengembalikan respons JSON untuk memberi tahu frontend bahwa update berhasil
+        return response()->json(['success' => true, 'id' => $page->id]);
     }
 
     /**
