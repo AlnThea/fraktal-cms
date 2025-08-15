@@ -17,7 +17,6 @@ import gjsCountdown from 'grapesjs-component-countdown';
 import gjsStyleGradient from 'grapesjs-style-gradient';
 import gjsStyleFilter from 'grapesjs-style-filter';
 import gjsFlexbox from 'grapesjs-blocks-flexbox';
-import gjsSlider from 'grapesjs-lory-slider';
 import gjsTyped from 'grapesjs-typed';
 import gjsCustomCode from 'grapesjs-custom-code';
 import gjsTooltip from 'grapesjs-tooltip';
@@ -51,6 +50,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             storageManager: { type: 'none' },
 
             plugins: [
+                gjsTailwindCSS,
                 gjsBlockBasic,
                 gjsNavbar,
                 gjsPluginForms,
@@ -58,7 +58,6 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 gjsStyleGradient,
                 gjsStyleFilter,
                 gjsFlexbox,
-                gjsSlider,
                 gjsTabs,
                 gjsTyped,
                 gjsCustomCode,
@@ -68,7 +67,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 gjsPostCSS,
                 gjspresetWebpage,
                 gjsNewsletter,
-                gjsTailwindCSS,
+
             ],
             pluginsOpts: {
                 'grapesjs-tailwindcss-plugin': {

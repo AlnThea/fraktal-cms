@@ -19,3 +19,4 @@ declare module 'grapesjs-tooltip';
 declare module 'grapesjs-tabs';
 declare module 'grapesjs-component-code-editor';
 declare module 'grapesjs-rulers';
+declare module 'grapesjs-tailwindcss-plugin';

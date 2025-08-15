@@ -26,7 +26,7 @@
         "react-dom": "^18.2.0",
         "tailwindcss": "^4.1.11",
         "typescript": "^5.8.3",
-        "vite": "^5.4.19"
+        "vite": "^7.1.2"
     },
     "dependencies": {
         "@emotion/react": "^11.14.0",
@@ -38,7 +38,7 @@
         "@silexlabs/grapesjs-ui-suggest-classes": "^1.1.0",
         "@tabler/icons-react": "^3.34.1",
         "classnames": "^2.5.1",
-        "grapesjs": "^0.19.5",
+        "grapesjs": "^0.22.12",
         "grapesjs-blocks-basic": "^1.0.2",
         "grapesjs-blocks-flexbox": "^1.0.1",
         "grapesjs-component-code-editor": "^1.0.20",
