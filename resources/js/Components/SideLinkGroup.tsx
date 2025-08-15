@@ -39,7 +39,6 @@ export default function SideLinkGroup({
 
     const renderContent = () => (
         <>
-
             <span className="w-6 h-6 flex items-center justify-center">{icon?.()}</span>
             {!collapsed && <span className="ml-3 text-sm font-medium flex-1">{label}</span>}
         </>
@@ -106,18 +105,20 @@ export default function SideLinkGroup({
 
             {/* Expanded submenu */}
             {!collapsed && children && open && (
-                <div className="ml-8 mt-1 space-y-1">
+                <div className="relative ml-8 mt-1 space-y-1 ">
                     {children.map((item, idx) => (
-                        <Link
-                            key={idx}
-                            href={route(item.route!)}
-                            className={classNames(
-                                'block text-sm text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
-                                currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
-                            )}
-                        >
-                            {item.label}
-                        </Link>
+                        <div key={idx} className="hover:border-l-4 hover:border-emerald-600 ">
+                            <Link
+                                key={idx}
+                                href={route(item.route!)}
+                                className={classNames(
+                                    'block text-sm hover:ml-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 py-1',
+                                    currentRoute?.startsWith(item.route!) && 'text-emerald-600 font-semibold'
+                                )}
+                            >
+                                {item.label}
+                            </Link>
+                        </div>
                     ))}
                 </div>
             )}

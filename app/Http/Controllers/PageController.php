@@ -37,7 +37,7 @@ class PageController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string',
+            'title' => 'required|string|max:255',
             'content' => 'nullable|array',
         ]);
 
@@ -81,7 +81,7 @@ class PageController extends Controller
     public function update(Request $request, Page $page)
     {
         $request->validate([
-            'title' => 'required|string',
+            'title' => 'required|string|max:255',
             'content' => 'nullable|array',
         ]);
 

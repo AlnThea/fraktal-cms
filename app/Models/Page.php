@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Page extends Model
 {
-    protected $fillable = ['title', 'content', 'users_id', 'status', 'type_post'];
+    protected $fillable = ['title', 'slug', 'content', 'users_id', 'status', 'type_post'];
 
     protected $casts = [
         'content' => 'array',
