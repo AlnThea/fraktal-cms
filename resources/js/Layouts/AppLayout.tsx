@@ -302,7 +302,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
 
                     {/* Page Content */}
                     <main
-                        className="flex-1 ml-50 p-6  dark:bg-gray-900 z-10 relative overflow-visible">{children}</main>
+                        className={`flex-1 p-6  dark:bg-gray-900 z-10 relative overflow-visible ${isCollapsed ? 'ml-15' : 'ml-50'}` }>{children}</main>
                 </div>
 
             </div>
