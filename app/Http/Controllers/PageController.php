@@ -19,7 +19,7 @@ class PageController extends Controller
     {
         return Inertia::render('Pages/Index', [
             'pages' => Page::with('author')
-                ->select('id', 'title', 'status', 'created_at', 'updated_at', 'users_id')
+                ->select('id', 'title', 'slug', 'status', 'created_at', 'updated_at', 'users_id')
                 ->get()
         ]);
     }
@@ -73,8 +73,14 @@ class PageController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Page $page)
+    public function edit(string $slug, Page $page)
     {
+        // Cek apakah slug yang diberikan cocok dengan slug halaman yang ditemukan
+        // Ini bersifat opsional namun direkomendasikan untuk SEO
+        if ($page->slug !== $slug) {
+            return redirect()->route('pages.edit', ['slug' => $page->slug, 'page' => $page->id]);
+        }
+
         return Inertia::render('Pages/Edit', [
             'page' => $page
         ]);

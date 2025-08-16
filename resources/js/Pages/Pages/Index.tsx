@@ -7,23 +7,20 @@ import React from "react";
 export interface Page {
     id: number;
     title: string;
-    content: any; // atau bisa lebih spesifik, misal Record<string, any>
-    status?: 'published' | 'draft'; // optional berdasarkan data JSON
+    content: any;
+    status?: 'published' | 'draft';
     author?: {
         id: number;
         name: string;
-    } | null; // optional dan bisa null berdasarkan data JSON
-    created_at: string; // format ISO string dari backend
+    } | null;
+    created_at: string;
     updated_at: string;
+    slug: string; // Tambahkan slug
 }
 
 // Definisikan interface PageProps
 interface PageProps {
     pages: Page[];
-    // tambahkan props lain dari Inertia jika diperlukan, misal:
-    // auth?: any;
-    // errors?: any;
-    // flash?: any;
 }
 
 // Gunakan PageProps untuk mengetik props komponen
@@ -62,11 +59,8 @@ export default function Index({ pages }: PageProps) {
                             <h1 className="text-xl font-bold mb-4">Pages</h1>
 
                             <div className={'flex gap-2 text-xs my-4'}>
-                                {/* Gunakan panjang array untuk nilai dinamis */}
                                 <span>All ({pages.length})</span>
                                 <span>|</span>
-                                {/* Hitung Published dan Draft jika perlu, atau hardcode untuk sementara */}
-                                {/* Misal, hitung status jika ada */}
                                 <span>Published ({pages.filter(p => p.status === 'published').length})</span>
                                 <span>|</span>
                                 <span>Draft ({pages.filter(p => p.status !== 'published').length})</span>
@@ -90,7 +84,6 @@ export default function Index({ pages }: PageProps) {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {/* Ketik parameter page sebagai Page */}
                                     {pages.map((page: Page) => (
                                         <tr key={page.id} className={'border-b border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}>
                                             <td className="px-4 py-2"><input type={'checkbox'} /></td>
@@ -99,7 +92,7 @@ export default function Index({ pages }: PageProps) {
                                                     {page.title} - {page.status ? (page.status.charAt(0).toUpperCase() + page.status.slice(1)) : 'Draft'}
                                                     <div>
                                                         <Link
-                                                            href={route('pages.edit', page.id)}
+                                                            href={route('pages.edit', { slug: page.slug, page: page.id })}
                                                             className="text-sm text-green-600 underline"
                                                         >
                                                             Edit
@@ -115,14 +108,13 @@ export default function Index({ pages }: PageProps) {
                                             </td>
                                             <td className="px-4 py-2 justify-center">
                                                 <div className={'text-xs'}>
-                                                    {page.author?.name || 'N/A'} {/* Gunakan optional chaining */}
+                                                    {page.author?.name || 'N/A'}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-2 justify-center">-</td>
                                             <td className="px-4 py-2 justify-center">
                                                 <div className={'text-xs'}>Updated at</div>
                                                 <div className={'text-xs'}>
-                                                    {/* Gunakan updated_at untuk tanggal "Updated at" */}
                                                     {page.updated_at
                                                         ? `${new Date(page.updated_at).toLocaleDateString()} ${new Date(page.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                                                         : 'N/A'}

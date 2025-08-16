@@ -106,7 +106,7 @@ export default function NewPage() {
                             <span className="w-auto h-7 font-bold text-teal-500">FRAKTAL CMS</span>
                         </a>
                         <div className={'mx-2'}></div>
-                        <span className="text-gray-300 dark:text-gray-200">
+                        <span className="text-gray-500 dark:text-gray-200">
                             <a href={route('pages.index')} title={'Back to Pages'} className="cursor-pointer hover:text-emerald-600">
                                 <IconArrowBackUp size={16}/>
                             </a>
