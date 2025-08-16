@@ -148,7 +148,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
 
             {/* MAIN CONTENT */}
             <div className="flex  dark:bg-gray-900">
-                <div className={'relative'}>
+                <div className={'relative w-full'}>
                     {/* SIDEBAR */}
                     <aside className={classNames(
                         'fixed top-10 left-0 bottom-0 z-40 flex flex-col px-3 py-6 overflow-hidden overflow-x-visible border-r-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300',
@@ -302,7 +302,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
 
                     {/* Page Content */}
                     <main
-                        className={`flex-1 p-6  dark:bg-gray-900 z-10 relative overflow-visible ${isCollapsed ? 'ml-15' : 'ml-50'}` }>{children}</main>
+                        className={`flex-1 p-6  dark:bg-gray-900 z-10 relative overflow-visible ${isCollapsed ? 'ml-15' : 'ml-50 '}` }>{children}</main>
                 </div>
 
             </div>
