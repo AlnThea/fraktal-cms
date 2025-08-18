@@ -53,7 +53,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
     };
 
     return (
-        <div className="min-h-screen bg-gray-200 text-gray-800 dark:text-gray-100">
+        <div className="min-h-screen bg-slate-300 text-gray-800 dark:text-gray-100">
             <Head title={title}/>
 
             <Banner/>

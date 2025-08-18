@@ -5,7 +5,6 @@ import {Head} from '@inertiajs/react';
 import axios from 'axios';
 import {route} from 'ziggy-js';
 import Banner from '@/Components/Banner';
-import AppLayout from '@/Layouts/AppLayout';
 import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
 import {IconArrowBackUp, IconHome} from "@tabler/icons-react";
@@ -17,25 +16,35 @@ export default function NewPage() {
     const [pageId, setPageId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [pageTitle, setPageTitle] = useState('Untitled Page');
-    const [pageSlug, setPageSlug] = useState('untitled-page'); // State baru untuk slug
+    const [pageSlug, setPageSlug] = useState('untitled-page');
+    const [pageStatus, setPageStatus] = useState<'draft' | 'published' | 'scheduled'>('draft');
+    const [scheduledAt, setScheduledAt] = useState<string | null>(null);
 
-    // Fungsi untuk menghasilkan slug dari judul
     const generateSlug = (title: string): string => {
         return title
             .toString()
             .toLowerCase()
             .trim()
-            .replace(/\s+/g, '-')       // Ganti spasi dengan tanda hubung
-            .replace(/[^\w-]+/g, '')     // Hapus karakter non-word
-            .replace(/--+/g, '-')        // Ganti multiple tanda hubung
-            .slice(0, 255);               // Batasi panjang slug hingga 255 karakter
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '')
+            .replace(/--+/g, '-')
+            .slice(0, 255);
     };
 
-    // Menangani perubahan input judul
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const title = e.target.value;
         setPageTitle(title);
         setPageSlug(generateSlug(title));
+    };
+
+    // Fungsi untuk menangani perubahan status
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newStatus = e.target.value as 'draft' | 'published' | 'scheduled';
+        setPageStatus(newStatus);
+        // Hapus scheduledAt jika status bukan 'scheduled'
+        if (newStatus !== 'scheduled') {
+            setScheduledAt(null);
+        }
     };
 
     const handleSaveOrUpdate = () => {
@@ -57,8 +66,11 @@ export default function NewPage() {
             url: url,
             data: {
                 title: pageTitle,
-                slug: pageSlug, // Mengirim slug bersama data
+                slug: pageSlug,
                 content: projectData,
+                status: pageStatus,
+                // Kirim scheduled_at hanya jika statusnya 'scheduled'
+                scheduled_at: pageStatus === 'scheduled' ? scheduledAt : null,
             },
         })
             .then((res) => {
@@ -151,6 +163,35 @@ export default function NewPage() {
                             <Editor editorRef={grapesEditorRef}/>
                         </Suspense>
                     </main>
+                    {/* Panel Samping untuk Status dan Scheduled At */}
+                    <aside className="w-72 bg-white dark:bg-gray-800 shadow-md p-4">
+                        <h2 className="text-lg font-semibold mb-4">Page Settings</h2>
+                        <div className="mb-4">
+                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                            <select
+                                id="status"
+                                value={pageStatus}
+                                onChange={handleStatusChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            >
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                                <option value="scheduled">Scheduled</option>
+                            </select>
+                        </div>
+                        {pageStatus === 'scheduled' && (
+                            <div className="mb-4">
+                                <label htmlFor="scheduled_at" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Date & Time</label>
+                                <input
+                                    type="datetime-local"
+                                    id="scheduled_at"
+                                    value={scheduledAt || ''}
+                                    onChange={(e) => setScheduledAt(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                />
+                            </div>
+                        )}
+                    </aside>
                 </div>
             </div>
         </>

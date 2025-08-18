@@ -15,12 +15,32 @@ class PageController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->input('perPage', 10);
+        $search = $request->input('search');
+        $sortColumn = $request->input('sortColumn', 'created_at');
+        $sortDirection = $request->input('sortDirection', 'desc');
+
+        $query = Page::with('author');
+
+        if ($search) {
+            $query->where('title', 'like', '%' . $search . '%');
+        }
+
+        if ($sortColumn === 'author') {
+            $query->join('users', 'pages.users_id', '=', 'users.id')
+                ->select('pages.*')
+                ->orderBy('users.name', $sortDirection);
+        } else {
+            $query->orderBy($sortColumn, $sortDirection);
+        }
+
+        $pages = $query->paginate($perPage);
+
         return Inertia::render('Pages/Index', [
-            'pages' => Page::with('author')
-                ->select('id', 'title', 'slug', 'status', 'created_at', 'updated_at', 'users_id')
-                ->get()
+            'pages' => $pages,
+            'filters' => $request->all(['perPage', 'search', 'sortColumn', 'sortDirection']),
         ]);
     }
 
@@ -41,6 +61,8 @@ class PageController extends Controller
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255',
             'content' => 'nullable|array',
+            'status' => 'required|in:draft,published,scheduled',
+            'scheduled_at' => 'nullable|date',
         ]);
 
         if (Auth::check()) {
@@ -55,15 +77,15 @@ class PageController extends Controller
             $pageData['content'] = json_decode($pageData['content'], true);
         }
 
-        // Tangani slug untuk memastikan keunikan
         $slug = $this->generateUniqueSlug($request->title, $request->slug);
 
         $page = Page::create([
             'title' => $pageData['title'],
-            'slug' => $slug, // Menggunakan slug yang sudah dijamin unik
+            'slug' => $slug,
             'content' => $pageData['content'],
             'users_id' => $userId,
-            'status' => 'draft',
+            'status' => $pageData['status'],
+            'scheduled_at' => $pageData['scheduled_at'] ?? null,
             'type_post' => 'pages',
         ]);
 
@@ -75,8 +97,6 @@ class PageController extends Controller
      */
     public function edit(string $slug, Page $page)
     {
-        // Cek apakah slug yang diberikan cocok dengan slug halaman yang ditemukan
-        // Ini bersifat opsional namun direkomendasikan untuk SEO
         if ($page->slug !== $slug) {
             return redirect()->route('pages.edit', ['slug' => $page->slug, 'page' => $page->id]);
         }
@@ -95,6 +115,8 @@ class PageController extends Controller
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255',
             'content' => 'nullable|array',
+            'status' => 'required|in:draft,published,scheduled',
+            'scheduled_at' => 'nullable|date',
         ]);
 
         $pageData = $request->all();
@@ -103,13 +125,14 @@ class PageController extends Controller
             $pageData['content'] = json_decode($pageData['content'], true);
         }
 
-        // Tangani slug untuk memastikan keunikan saat update
         $slug = $this->generateUniqueSlug($request->title, $request->slug, $page->id);
 
         $page->update([
             'title' => $pageData['title'],
-            'slug' => $slug, // Menggunakan slug yang sudah dijamin unik
+            'slug' => $slug,
             'content' => $pageData['content'],
+            'status' => $pageData['status'],
+            'scheduled_at' => $pageData['scheduled_at'] ?? null,
         ]);
 
         return response()->json(['success' => true, 'id' => $page->id]);
@@ -130,14 +153,11 @@ class PageController extends Controller
      */
     protected function generateUniqueSlug(string $title, string $baseSlug, ?int $pageId = null): string
     {
-        // Gunakan base slug dari frontend, atau generate jika kosong
         $slug = $baseSlug ?: Str::slug($title, '-');
-
         $originalSlug = $slug;
         $count = 1;
         $query = Page::where('slug', $slug);
 
-        // Abaikan halaman saat ini saat update
         if ($pageId) {
             $query->where('id', '!=', $pageId);
         }
@@ -145,7 +165,6 @@ class PageController extends Controller
         while ($query->exists()) {
             $slug = "{$originalSlug}-{$count}";
             $query = Page::where('slug', $slug);
-
             if ($pageId) {
                 $query->where('id', '!=', $pageId);
             }
@@ -153,5 +172,47 @@ class PageController extends Controller
         }
 
         return $slug;
+    }
+
+    public function destroyMultiple(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer',
+        ]);
+
+        Page::whereIn('id', $request->input('ids'))->delete();
+
+        return redirect()->route('pages.index')->with('success', 'Pages deleted!');
+    }
+
+    public function updateStatus(Request $request, Page $page)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,published,scheduled',
+            'scheduled_at' => 'nullable|date', // <--- Tambahkan validasi ini
+        ]);
+
+        $page->update([
+            'status' => $request->status,
+            'scheduled_at' => $request->scheduled_at // <--- Perbarui kolom ini
+        ]);
+
+        return redirect()->back()->with('success', 'Status updated successfully!');
+    }
+
+    public function updateMultipleStatus(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer',
+            'status' => 'required|in:draft,published,scheduled',
+        ]);
+
+        Page::whereIn('id', $request->ids)->update([
+            'status' => $request->status
+        ]);
+
+        return redirect()->back()->with('success', 'Selected pages status updated!');
     }
 }

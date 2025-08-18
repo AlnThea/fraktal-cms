@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('slug')->unique();
             $table->string('status')->default('draft');
+            $table->timestamp('scheduled_at')->nullable();
             $table->enum('type_post', ['post', 'pages'])->default('post');
             $table->json('content')->nullable();
             $table->timestamps();

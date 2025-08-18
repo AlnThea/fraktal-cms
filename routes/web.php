@@ -27,12 +27,21 @@ Route::middleware([
         return Inertia::render('Post/NewPost');
     })->name('editor');
 
+
+
+
     Route::get('/pages/new-pages', [PageController::class, 'create'])->name('pages.create');
     Route::get('/pages', [PageController::class, 'index'])->name('pages.index');
+
+    Route::put('/pages/update-status-multiple', [PageController::class, 'updateMultipleStatus'])->name('pages.update.multiple.status');
+    Route::put('/pages/{page}/status', [PageController::class, 'updateStatus'])->name('pages.update.status');
+    Route::delete('/pages/destroy-multiple', [PageController::class, 'destroyMultiple'])->name('pages.destroy.multiple');
+
     Route::post('/pages', [PageController::class, 'store'])->name('pages.store');
     Route::get('/pages/{slug}/e/{page}/edit', [PageController::class, 'edit'])->name('pages.edit');
     Route::put('/pages/{page}', [PageController::class, 'update'])->name('pages.update');
     Route::delete('/pages/{page}', [PageController::class, 'destroy'])->name('pages.destroy');
+
 });
 
 
