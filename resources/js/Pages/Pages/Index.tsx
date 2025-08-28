@@ -272,45 +272,7 @@ export default function Index({ pages, filters }: PageProps) {
                                     <span>Published ({pages.data.filter(p => p.status === 'published').length})</span>
                                     <span>|</span>
                                     <span>Draft ({pages.data.filter(p => p.status !== 'published').length})</span>
-                                    <Link href={route('pages.create')} className="text-blue-600 ">
-                                        + New Page
-                                    </Link>
-                                    {selectedPages.length > 0 && (
-                                        <>
-                                            <span className={'mx-2 text-sm text-gray-400'}>|</span>
-                                            <button
-                                                onClick={() => handleUpdateSelectedStatus('published')}
-                                                className="text-sm cursor-pointer text-teal-600 hover:text-teal-800"
-                                            >
-                                                <div className={'flex gap-1'}>
-                                                    <IconCheck size={16}/> Publish Selected ({selectedPages.length})
-                                                </div>
-                                            </button>
-                                            <span className={'mx-2 text-sm text-gray-400'}>|</span>
-                                            <button
-                                                onClick={() => handleUpdateSelectedStatus('draft')}
-                                                className="text-sm cursor-pointer text-gray-600 hover:text-gray-800"
-                                            >
-                                                <div className={'flex gap-1'}>
-                                                    <IconLineDashed size={16}/> Draft Selected ({selectedPages.length})
-                                                </div>
-                                            </button>
-                                            <span className={'mx-2 text-sm text-gray-400'}>|</span>
-                                            <button onClick={handleDeleteSelected} className="text-red-600 underline">
-                                                Delete Selected ({selectedPages.length})
-                                            </button>
-                                            <span className={'mx-2 text-sm text-gray-400'}>|</span>
-                                            {/* Tambahkan tombol 'Schedule' jika diperlukan */}
-                                            <button
-                                                onClick={() => handleUpdateSelectedStatus('scheduled')}
-                                                className="text-sm cursor-pointer text-blue-600 hover:text-blue-800"
-                                            >
-                                                <div className={'flex gap-1'}>
-                                                    <IconClock size={16}/> Schedule Selected ({selectedPages.length})
-                                                </div>
-                                            </button>
-                                        </>
-                                    )}
+
                                 </div>
                                 <div className="relative justify-end">
                                     <TextInput
@@ -325,14 +287,14 @@ export default function Index({ pages, filters }: PageProps) {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center gap-2 mt-8 mb-4">
+                            <div className="flex justify-between items-center gap-2 mt-8 mb-2">
                                 <div className="flex items-center gap-2">
                                     <label htmlFor="perPage" className={'text-sm'}>per page:</label>
                                     <select
                                         id="perPage"
                                         value={perPage}
                                         onChange={handlePerPageChange}
-                                        className="text-ss"
+                                        className="text-sm"
                                     >
                                         <option value="10">10</option>
                                         <option value="25">25</option>
@@ -340,8 +302,60 @@ export default function Index({ pages, filters }: PageProps) {
                                         <option value="100">100</option>
                                     </select>
                                 </div>
+                                <div className={'flex items-center text-xs '}>
+                                    <div className={`bg-white px-4 py-1  hover:bg-teal-300 ${selectedPages.length > 0  ? 'rounded-l-2xl ease-in-out duration-300':'rounded-2xl'}`}>
+                                        <Link href={route('pages.create')} className="text-blue-600 ">
+                                            + New Page
+                                        </Link>
+                                    </div>
+
+                                    {selectedPages.length > 0 && (
+                                        <div className={'flex items-center gap-2 bg-white rounded-r-2xl'}>
+                                            <div className={'flex items-center px-3 py-1 hover:bg-teal-300 '}>
+                                                <button
+                                                    onClick={() => handleUpdateSelectedStatus('published')}
+                                                    className="cursor-pointer text-teal-600 hover:text-teal-800 "
+                                                >
+                                                    <div className={'flex gap-1'}>
+                                                        <IconCheck size={16}/> Publish Selected ({selectedPages.length})
+                                                    </div>
+                                                </button>
+                                            </div>
+                                            <div className={'flex items-center px-3 py-1 hover:bg-teal-300 '}>
+                                                <button
+                                                    onClick={() => handleUpdateSelectedStatus('draft')}
+                                                    className="cursor-pointer text-gray-600 hover:text-gray-800"
+                                                >
+                                                    <div className={'flex gap-1'}>
+                                                        <IconLineDashed size={16}/> Draft Selected ({selectedPages.length})
+                                                    </div>
+                                                </button>
+                                            </div>
+                                            <div className={'flex items-center px-3 py-1 hover:bg-teal-300 '}>
+                                                <button onClick={handleDeleteSelected} className="text-red-600 cursor-pointer ">
+                                                    <div className={'flex gap-1'}>
+                                                        <IconTrash size={16}/> Delete Selected ({selectedPages.length})
+                                                    </div>
+                                                </button>
+                                            </div>
+                                            <div className={'flex items-center px-3 py-1 hover:bg-teal-300 '}>
+                                                {/* Tambahkan tombol 'Schedule' jika diperlukan */}
+                                                <button
+                                                    onClick={() => handleUpdateSelectedStatus('scheduled')}
+                                                    className="cursor-pointer text-blue-600 hover:text-blue-800"
+                                                >
+                                                    <div className={'flex gap-1'}>
+                                                        <IconClock size={16}/> Schedule Selected ({selectedPages.length})
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                        </div>
+                                    )}
+                                </div>
+
                             </div>
-                            <div className={' bg-white w-full dark:bg-gray-800'}>
+                            <div className={' bg-white w-full dark:bg-gray-800 rounded-2xl shadow shadow-teal-300'}>
                                 <table className={'w-full'}>
                                     <thead>
                                     <tr className={'text-gray-500 text-sm font-bold shadow '}>
@@ -467,7 +481,7 @@ export default function Index({ pages, filters }: PageProps) {
                                     ))}
                                     </tbody>
                                     <tfoot>
-                                    <tr className={'text-gray-500 text-sm font-bold shadow shadow-teal-300'}>
+                                    <tr className={'text-gray-500 text-sm font-bold  '}>
                                         <td className="px-4 py-2 w-10">
                                             <input
                                                 type={'checkbox'}
