@@ -63,7 +63,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                     <div className="relative flex items-center z-50">
                         <div className="flex items-center mr-3">
                             <a href={route('homepage')}>
-                                <span className="w-auto h-7 font-bold text-teal-500">FRAKTAL CMS</span>
+                                <span className=" text-xs lg:text-lg w-auto h-7 font-bold text-teal-500 whitespace-nowrap">FRAKTAL CMS</span>
                             </a>
                         </div>
                         <button
@@ -73,7 +73,7 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                         >
                             {isCollapsed ? <IconX size={24} /> : <IconMenu2 size={24} />}
                         </button>
-                        <div className={'mx-4'}></div>
+                        <div className={'mx-2 lg:mx-4'}></div>
 
                         <div className="flex items-center py-4 overflow-x-auto whitespace-nowrap text-xs">
                             <span className="text-gray-300 dark:text-gray-200">
@@ -85,8 +85,8 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                             </a>
                         </div>
                     </div>
-                    <div className={'text-sm text-gray-600'}>{renderHeader && renderHeader()} </div>
-                    <div className="flex items-center ">
+                    <div className={'hidden lg:flex text-xs text-gray-600'}>{renderHeader && renderHeader()} </div>
+                    <div className="hidden lg:flex items-center ">
                         <div className="relative z-50">
                             {/* Right Side */}
                             <div className="flex items-center gap-4 ">
