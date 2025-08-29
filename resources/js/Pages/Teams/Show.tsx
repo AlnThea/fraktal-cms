@@ -9,7 +9,7 @@ import {
   Team,
   TeamInvitation,
   User,
-} from '@/types';
+} from '@/Types/types';
 import React from 'react';
 
 interface UserMembership extends User {

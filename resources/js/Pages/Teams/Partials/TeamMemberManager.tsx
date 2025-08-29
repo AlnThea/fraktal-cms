@@ -19,7 +19,7 @@ import {
   Team,
   TeamInvitation,
   User,
-} from '@/types';
+} from '@/Types/types';
 import { router } from '@inertiajs/core';
 import { useForm } from '@inertiajs/react';
 import classNames from 'classnames';

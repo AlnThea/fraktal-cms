@@ -7,7 +7,7 @@ import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfile
 import useTypedPage from '@/Hooks/useTypedPage';
 import SectionBorder from '@/Components/SectionBorder';
 import AppLayout from '@/Layouts/AppLayout';
-import { Session } from '@/types';
+import { Session } from '@/Types/types';
 
 interface Props {
   sessions: Session[];

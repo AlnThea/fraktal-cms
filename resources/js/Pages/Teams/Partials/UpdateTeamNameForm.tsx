@@ -5,7 +5,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { JetstreamTeamPermissions, Team, User } from '@/types';
+import { JetstreamTeamPermissions, Team, User } from '@/Types/types';
 import { useForm } from '@inertiajs/react';
 import classNames from 'classnames';
 import React from 'react';

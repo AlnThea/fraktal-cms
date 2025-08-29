@@ -9,7 +9,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { Session } from '@/types';
+import { Session } from '@/Types/types';
 
 interface Props {
   sessions: Session[];

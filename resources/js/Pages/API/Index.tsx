@@ -1,7 +1,7 @@
 import React from 'react';
 import APITokenManager from '@/Pages/API/Partials/APITokenManager';
 import AppLayout from '@/Layouts/AppLayout';
-import { ApiToken } from '@/types';
+import { ApiToken } from '@/Types/types';
 
 interface Props {
   tokens: ApiToken[];

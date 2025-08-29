@@ -3,7 +3,7 @@ import ActionSection from '@/Components/ActionSection';
 import ConfirmationModal from '@/Components/ConfirmationModal';
 import DangerButton from '@/Components/DangerButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { Team } from '@/types';
+import { Team } from '@/Types/types';
 import { useForm } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { useState } from 'react';

@@ -10,7 +10,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { User } from '@/types';
+import { User } from '@/Types/types';
 import useTypedPage from '@/Hooks/useTypedPage';
 
 interface Props {

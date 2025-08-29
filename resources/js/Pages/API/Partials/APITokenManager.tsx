@@ -15,7 +15,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SectionBorder from '@/Components/SectionBorder';
-import { ApiToken } from '@/types';
+import { ApiToken } from '@/Types/types';
 import useTypedPage from '@/Hooks/useTypedPage';
 
 interface Props {

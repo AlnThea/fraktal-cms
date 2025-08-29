@@ -13,12 +13,13 @@
         },
         "types": ["vite/client"],
         "typeRoots": [
-            "./resources/js/types",
+            "./resources/js/Types/types",
             "./node_modules/@types"
         ]
     },
     "include": [
         "resources/js",
         "vite.config.ts",
+
     ]
 }
