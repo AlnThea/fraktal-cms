@@ -262,13 +262,13 @@ export default function Index({ pages, filters }: PageProps) {
             breadcrumb={() => (
                 <>
                     <div className={'flex items-center'}>
-                        <span className="mx-3 text-gray-300 dark:text-gray-300"> / </span>
+                        <span className="mx-1 lg:mx-3 text-gray-300 dark:text-gray-300"> / </span>
                     </div>
                     <div className={'flex items-center'}>
-                        <span className="mx-3 text-gray-300 dark:text-gray-300"> Page </span>
+                        <span className="mx-1 lg:mx-3 text-gray-300 dark:text-gray-300"> Page </span>
                     </div>
                     <div className={'flex items-center'}>
-                        <span className="mx-3 text-gray-300 dark:text-gray-300"> / </span>
+                        <span className="mx-1 lg:mx-3 text-gray-300 dark:text-gray-300"> / </span>
                     </div>
                 </>
             )}
