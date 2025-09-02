@@ -8,6 +8,7 @@ import Banner from '@/Components/Banner';
 import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
 import {IconArrowBackUp, IconHome, IconMenuDeep} from "@tabler/icons-react";
+import Modal from '@alnthea/react-tailwind-modal';
 
 const Editor = lazy(() => import('@/Components/Editor'));
 
@@ -19,6 +20,8 @@ export default function NewPage() {
     const [pageSlug, setPageSlug] = useState('untitled-page');
     const [pageStatus, setPageStatus] = useState<'draft' | 'published' | 'scheduled'>('draft');
     const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+
+    const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(false);
 
     const generateSlug = (title: string): string => {
         return title
@@ -104,6 +107,10 @@ export default function NewPage() {
         }
     };
 
+    const closeModal = () => {
+        setIsSidebarRightOpen(false);
+    };
+
     return (
         <>
             <div className="min-h-screen bg-gray-200 text-gray-800 dark:text-gray-100">
@@ -156,22 +163,27 @@ export default function NewPage() {
                 <div className="flex pt-11 dark:bg-gray-900">
                     <main className="flex-1 w-full z-10 relative overflow-visible">
                         <div
-                            className="relative w-full h-13 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
-                            <div>
+                            className="relative w-full h-16 bg-white dark:bg-gray-800  dark:border-gray-700 flex items-center">
+                            <div className={'w-full mr-15'}>
                                 <span
                                     className="absolute mx-4 top-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Page Title:</span>
                                 <TextInput
-                                    className={'bg-white w-full h-13 rounded-none pl-4 text-lg font-semibold focus:border-none border-none shadow-none '}
+                                    className={'bg-white w-full h-13 rounded-none pl-4 text-lg font-semibold focus:border-none border-none shadow-none outline-none'}
                                     placeholder={'Title'}
                                     value={pageTitle}
                                     onChange={handleTitleChange}
                                 />
                                 <span
-                                    className="absolute right-0 bottom-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Slug: <span
-                                    className="text-sm font-medium">{pageSlug}</span></span>
+                                    className="absolute left-4 bottom-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Slug: <span
+                                    className="text-xs font-medium">{pageSlug}</span></span>
                             </div>
-                            <div className={'absolute top-2 right-0'}>
-                                <IconMenuDeep/>
+                            <div className={'absolute top-5 right-5'}>
+                                <button
+                                    onClick={() => setIsSidebarRightOpen(true)}
+                                >
+                                    <IconMenuDeep/>
+                                </button>
+
                             </div>
                         </div>
                         <Suspense fallback={<div>Loading Editor...</div>}>
@@ -179,37 +191,48 @@ export default function NewPage() {
                         </Suspense>
                     </main>
                     {/* Panel Samping untuk Status dan Scheduled At */}
-                    <aside className="w-72 bg-white dark:bg-gray-800 shadow-md p-4">
-                        <h2 className="text-lg font-semibold mb-4">Page Settings</h2>
-                        <div className="mb-4">
-                            <label htmlFor="status"
-                                   className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                            <select
-                                id="status"
-                                value={pageStatus}
-                                onChange={handleStatusChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                            >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
-                                <option value="scheduled">Scheduled</option>
-                            </select>
-                        </div>
-                        {pageStatus === 'scheduled' && (
-                            <div className="mb-4">
-                                <label htmlFor="scheduled_at"
-                                       className="block text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled
-                                    Date & Time</label>
-                                <input
-                                    type="datetime-local"
-                                    id="scheduled_at"
-                                    value={scheduledAt || ''}
-                                    onChange={(e) => setScheduledAt(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                />
+                    <div className={'relative z-50'}>
+                        <Modal isOpen={isSidebarRightOpen} onClose={closeModal} disableClickOutside={true} type="sidebar-right">
+                            <div className="relative px-4 w-60 h-[97vh]">
+                                <h2 className="text-lg font-semibold mt-8 mb-4">Page Settings</h2>
+                                <div className="mb-4">
+                                    <label htmlFor="status"
+                                           className="block text-xs font-medium text-gray-400 dark:text-gray-300">Status</label>
+                                    <select
+                                        id="status"
+                                        value={pageStatus}
+                                        onChange={handleStatusChange}
+                                        className="px-3 py-1 mt-1 block w-full border-b-2 border-dashed border-emerald-300 outline-none text-sm font-semibold"
+                                    >
+                                        <option value="draft">Draft</option>
+                                        <option value="published">Published</option>
+                                        <option value="scheduled">Scheduled</option>
+                                    </select>
+                                </div>
+                                {pageStatus === 'scheduled' && (
+                                    <div className="mb-4">
+                                        <label htmlFor="scheduled_at"
+                                               className="block text-xs font-medium text-gray-400 dark:text-gray-300">Scheduled
+                                            Date & Time</label>
+                                        <TextInput
+                                            type="datetime-local"
+                                            id="scheduled_at"
+                                            value={scheduledAt || ''}
+                                            onChange={(e) => setScheduledAt(e.target.value)}
+                                            className={'px-2 py-1 mt-1 border-b-2 border-dashed border-emerald-300 outline-none'}
+                                        />
+                                    </div>
+                                )}
+                                <div className={'absolute bottom-0 left-0 w-60 '}>
+                                    <div className={'mt-0.5 flex items-center justify-center py-2 bg-emerald-300 hover:bg-emerald-500 cursor-pointer'} onClick={closeModal}>
+                                        <span className={'font-semibold text-white'} >close</span>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </aside>
+                        </Modal>
+                    </div>
+
+
                 </div>
             </div>
         </>
