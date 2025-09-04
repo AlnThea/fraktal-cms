@@ -113,7 +113,7 @@ export default function NewPage() {
 
     return (
         <>
-            <div className="min-h-screen bg-gray-200 text-gray-800 dark:text-gray-100">
+            <div className="min-h-screen overflow-hidden bg-gray-200 text-gray-800 dark:text-gray-100">
                 <Head title="New Page"/>
 
                 <Banner/>
@@ -161,9 +161,9 @@ export default function NewPage() {
                 </header>
 
                 <div className="flex pt-11 dark:bg-gray-900">
-                    <main className="flex-1 w-full z-10 relative overflow-visible">
+                    <main className="flex-1 w-full  relative overflow-visible">
                         <div
-                            className="relative w-full h-16 bg-white dark:bg-gray-800  dark:border-gray-700 flex items-center">
+                            className="relative w-full z-40 h-16 bg-white dark:bg-gray-800  dark:border-gray-700 flex items-center">
                             <div className={'w-full mr-15'}>
                                 <span
                                     className="absolute mx-4 top-0 text-gray-400 dark:text-gray-300 text-xs text-nowrap">Page Title:</span>

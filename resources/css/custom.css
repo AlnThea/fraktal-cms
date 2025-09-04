@@ -573,8 +573,9 @@ span.CodeMirror-selectedtext {
 
 :root {
     --gjs-main-color: white;
-    --gjs-primary-color: white;
-    --gjs-secondary-color: #ddd;
+    --gjs-primary-color: #cbd5e1;
+    --gjs-secondary-color: #cbd5e1;
+    --gjs-third-color: white;
     --gjs-tertiary-color: #6ee7b7;
     --gjs-quaternary-color: #34d399;
     --gjs-font-color: black;
@@ -582,7 +583,7 @@ span.CodeMirror-selectedtext {
     --gjs-main-dark-color: rgba(0, 0, 0, 0.2);
     --gjs-secondary-dark-color: rgba(0, 0, 0, 0.1);
     --gjs-main-light-color: #ccfbf1;
-    --gjs-secondary-light-color: rgba(255, 255, 255, 0.7);
+    --gjs-secondary-light-color: #cbd5e1;
     --gjs-soft-light-color: rgba(255, 255, 255, 0.015);
     --gjs-color-blue: #3b97e3;
     --gjs-color-red: #dd3636;
@@ -877,7 +878,9 @@ span.CodeMirror-selectedtext {
     height: 100%;
     left: 0;
     right: 0;
-    margin: auto
+    margin: auto;
+    overflow-y: hidden !important;
+
 }
 
 .gjs-frame-wrapper--anim {
@@ -964,7 +967,7 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-cv-canvas-bg {
-    background-color: rgba(0, 0, 0, .15)
+    background-color: var(--gjs-primary-color);
 }
 
 .gjs-cv-canvas.gjs-cui {
@@ -1050,7 +1053,8 @@ span.CodeMirror-selectedtext {
     top: 0;
     bottom: 0;
     left: 0;
-    right: 0
+    right: 0;
+    overflow-y: hidden !important;
 }
 
 .gjs-toolbar {
@@ -1297,10 +1301,11 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-pn-panel .icon-undo, .gjs-pn-panel .icon-redo {
-    font-size: 20px;
+    font-size: 100px;
     height: 30px;
     width: 25px
 }
+
 
 .gjs-pn-commands {
     width: calc(100% - var(--gjs-left-width));
@@ -1638,7 +1643,7 @@ span.CodeMirror-selectedtext {
     -webkit-appearance: none;
     margin-top: -4px;
     height: 10px;
-    width: 10px;
+    width: 0px;
     border: 1px solid var(--gjs-main-dark-color);
     border-radius: 100%;
     background-color: var(--gjs-font-color);
@@ -1656,7 +1661,7 @@ span.CodeMirror-selectedtext {
 
 .gjs-field-range input::-ms-thumb {
     height: 10px;
-    width: 10px;
+    width: 0px;
     border: 1px solid var(--gjs-main-dark-color);
     border-radius: 100%;
     background-color: var(--gjs-font-color);
@@ -2208,9 +2213,9 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-blocks-c {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Membuat 3 kolom dengan lebar yang sama */
+    gap: 3px; /* Menambah jarak antar blok */
 }
 
 .gjs-block-categories {
@@ -2233,28 +2238,33 @@ span.CodeMirror-selectedtext {
     -ms-user-select: none;
     -o-user-select: none;
     user-select: none;
-    width: 45%;
+    width: auto;
     min-width: 45px;
     padding: 1em;
     box-sizing: border-box;
     min-height: 90px;
     cursor: all-scroll;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: lighter;
     text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border: 1px solid rgba(0, 0, 0, .2);
     border-radius: 3px;
     margin: 10px 2.5% 5px;
     box-shadow: 0 1px 0 0 rgba(0, 0, 0, .15);
     transition: all .2s ease 0s;
-    transition-property: box-shadow, color
+    transition-property: box-shadow, color;
+    border: none;
+    box-shadow: none !important;
+    color: var(--gjs-font-color);
 }
 
 .gjs-block:hover {
-    box-shadow: 0 3px 4px 0 rgba(0, 0, 0, .15)
+    /*box-shadow: 0 3px 4px 0 rgba(0, 0, 0, .15);*/
+    transform: translateY(-5px);
+    /* Anda bisa menambahkan bayangan baru jika diinginkan */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .gjs-block svg {
@@ -2310,7 +2320,7 @@ span.CodeMirror-selectedtext {
     text-align: left;
     position: relative;
     font-size: var(--gjs-font-size);
-    display: grid
+    display: grid;
 }
 
 .gjs-layer-item {
@@ -2449,7 +2459,7 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-layer.gjs-hovered .gjs-layer-item {
-    background-color: var(--gjs-soft-light-color)
+    background-color: var(--gjs-main-light-color)
 }
 
 .gjs-layer.gjs-selected .gjs-layer-item {
@@ -3540,7 +3550,8 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-one-bg {
-    background-color: var(--gjs-primary-color)
+    /*background-color: transparent !important;*/
+    background-color: transparent !important;
 }
 
 .gjs-one-color {
@@ -3641,11 +3652,12 @@ span.CodeMirror-selectedtext {
 }
 
 .gjs-editor-cont ::-webkit-scrollbar-thumb {
-    background-color: hsla(0, 0%, 100%, .2)
+    background-color: hsla(0, 0%, 100%, .2);
+    width:1px;
 }
 
 .gjs-editor-cont ::-webkit-scrollbar {
-    width: 8px
+    width: 1px
 }
 
 .gjs-no-touch-actions {
@@ -3668,7 +3680,9 @@ span.CodeMirror-selectedtext {
     font-size: var(--gjs-font-size);
     position: relative;
     box-sizing: border-box;
-    height: 100%
+    height: 100%;
+    overflow-y: hidden !important;
+
 }
 
 .gjs-freezed, .gjs-freezed {
@@ -3711,6 +3725,7 @@ span.CodeMirror-selectedtext {
     display: flex;
     justify-content: space-between;
     border-bottom: 2px dashed var(--gjs-dashed-color);
+    background-color: white !important;
 }
 .panel__basic-actions{
     justify-content: flex-end;
@@ -3732,14 +3747,13 @@ span.CodeMirror-selectedtext {
 }
 
 .panel__top svg {
-    width: 16px;
-    height: 16px;
+    width: 24px;   /*icon panel*/
+    height: 24px;  /*icon panel*/
     color: #2dd4bf;
 }
 .panel__right {
     overflow-y: auto;
     border: 1px dashed #ddd;
-
 }
 
 .panel__left button {
@@ -3784,5 +3798,44 @@ span.CodeMirror-selectedtext {
 .gjs-highlighter,
 .gjs-ghost {
     box-sizing: border-box !important;
+}
+/* Tambahkan transisi untuk animasi sidebar */
+.sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+}
+
+.translate-x-0 {
+    transform: translateX(0);
+}
+
+/* Gaya untuk sidebar saat tertutup */
+.-translate-x-full {
+    transform: translateX(-100%);
+    position: absolute; /* agar tidak menggeser konten lain */
+}
+
+.gjs-layer.gjs-layer__t-wrapper.gjs-selected > .gjs-layer-item {
+    background-color: #5eead4 !important; /* Gunakan warna latar belakang yang Anda inginkan */
+}
+.gjs-layer.gjs-selected .gjs-layer-item {
+    background-color: #ccfbf1 !important; /* Contoh warna yang lebih terang */
+}
+/* Menimpa gaya hover untuk semua item layer */
+.gjs-layers .gjs-layer-item:hover {
+    background-color: var(--gjs-tertiary-color) !important; /* Ganti dengan warna yang Anda inginkan */
+}
+
+/* Menimpa gaya saat layer dipilih (selected) */
+.gjs-layers .gjs-layer.gjs-selected > .gjs-layer-item {
+    background-color: #cce7ff !important; /* Ganti dengan warna yang Anda inginkan */
+}
+
+
+/* Menargetkan semua elemen di dalam GrapesJS dengan scrollbar */
+.gjs-pn-panel, .gjs-blocks-c, .gjs-layers, .gjs-sm-sectors, .gjs-am-assets-cont, .gjs-editor {
+    overflow-y: hidden !important;
+}
+.panel_border-none {
+    border: none !important;
 }
 

@@ -130,8 +130,6 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                 )}
                             </div>
                         </div>
-
-
                         <button
                             className="relative p-2 mx-3 text-gray-400 transition-colors duration-300 rounded-full hover:bg-gray-100 hover:text-gray-600 focus:bg-gray-100">
                             <span className="sr-only">Notifications</span><span
