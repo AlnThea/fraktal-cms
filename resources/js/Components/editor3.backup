@@ -16,6 +16,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
     const [isSidebarLeftOpen, setIsSidebarLeftOpen] = useState(true);
     const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(true);
 
+    // State untuk mengontrol blok yang aktif di sidebar kiri
     const [activeBlocksPanel, setActiveBlocksPanel] = useState('basic');
 
     useEffect(() => {
@@ -26,10 +27,12 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             height: '88vh',
             width: '100%',
             storageManager: { type: 'none' },
+            // Arahkan semua panel UI ke container yang unik di dalam panel kanan
             layerManager: { appendTo: '.layers-container' },
             selectorManager: { appendTo: '.styles-container' },
             styleManager: { appendTo: '.styles-container' },
             traitManager: { appendTo: '.traits-container' },
+            // Ubah appendTo blockManager untuk menargetkan kontainer baru
             blockManager: { appendTo: '.blocks-container' },
             deviceManager: {
                 devices: [
@@ -38,11 +41,15 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 ],
             },
             panels: {
-                defaults: [],
+                defaults: [
+                    // Hapus panel default karena kita akan membuatnya secara manual di JSX
+                ],
             },
             plugins: [gjsTailwindCSS, gjsBlockBasic],
             pluginsOpts: {
-                'grapesjs-tailwindcss-plugin': {},
+                'grapesjs-tailwindcss-plugin': {
+                    // Opsi plugin
+                },
             },
         });
 
@@ -84,6 +91,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             },
         });
 
+        // Fungsi showOnly yang lebih sederhana
         const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
             const panels = {
                 layers: document.querySelector('.layers-container'),
@@ -114,12 +122,14 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
         editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
         editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
 
+        // Tampilkan satu panel secara default saat editor siap
         editor.on('load', () => showOnly('styles'));
 
         if (initialData) {
             editor.loadProjectData(initialData);
         }
 
+        // Tangani pembaruan Block Manager saat state berubah
         const updateBlockManager = () => {
             const blockManager = editor.BlockManager;
             const allBlocks = blockManager.getAll();
@@ -129,23 +139,26 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 const isBasic = category === 'Basic';
                 const isTailwind = category === 'Tailwind Blocks';
 
+                // Sembunyikan atau tampilkan blok berdasarkan panel yang aktif
                 if (activeBlocksPanel === 'basic') {
                     block.set('private', !isBasic);
                 } else if (activeBlocksPanel === 'tailwind') {
                     block.set('private', !isTailwind);
                 } else {
+                    // Tampilkan semua jika tidak ada yang dipilih
                     block.set('private', false);
                 }
             });
         };
 
+        // Panggil fungsi saat editor siap dan ketika state berubah
         updateBlockManager();
         editor.on('change:activeBlocksPanel', updateBlockManager);
 
         return () => {
             editor.destroy();
         };
-    }, [editorRef, activeBlocksPanel]);
+    }, [editorRef, activeBlocksPanel]); // Tambahkan activeBlocksPanel sebagai dependency
 
     const handleCommand = (command: string) => {
         if (editorRefInternal.current) {
@@ -157,7 +170,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
         <div className="flex bg-slate-300 w-full relative h-screen overflow-hidden">
             {/* Tombol Toggle Sidebar Kiri */}
             <div
-                className={`absolute top-20 z-40 transition-all duration-300 ease-in-out ${
+                className={`absolute top-20 z-30 transition-all duration-300 ease-in-out ${
                     isSidebarLeftOpen ? 'left-[17.9rem]' : 'left-0'
                 }`}
             >
@@ -177,11 +190,12 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
             {/* Panel Kiri (Sidebar) */}
             <aside
-                className={`absolute left-0 bg-white w-72 z-40 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
+                className={`absolute left-0 bg-white w-72 z-20 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
                     isSidebarLeftOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 <div className="p-4 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
+                    {/* Block Switcher Tabs */}
                     <div className="flex gap-2 mb-2">
                         <button
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
@@ -196,6 +210,8 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                             Tailwind Blocks
                         </button>
                     </div>
+
+                    {/* Container untuk Block Manager */}
                     <div className="blocks-container flex-grow overflow-y-auto"></div>
                 </div>
             </aside>
@@ -240,7 +256,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     </div>
 
                     {/* Tombol Toggle Sidebar Kanan (Hanya Muncul di Mobile) */}
-                    <div className={`absolute top-20 z-40 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
+                    <div className={`absolute top-20 z-30 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
                         <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-l-2 border-b-2 rounded-tl-xl rounded-bl-xl border-teal-300">
                             <button title="Style Manager" className="p-1" onClick={() => setIsSidebarRightOpen(!isSidebarRightOpen)}
                                     dangerouslySetInnerHTML={{
@@ -254,7 +270,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
                     {/* Panel Kanan (Digabung untuk Mobile & Desktop) */}
                     <aside
-                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-40
+                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-20
                                    flex-shrink-0
                                    lg:relative lg:w-72 lg:translate-x-0 lg:border-l-2 lg:border-teal-300
                                    absolute top-0 right-0 h-full w-72

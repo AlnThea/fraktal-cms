@@ -1,0 +1,7 @@
+.gjs-cv-canvas {
+    width: calc(100% - var(--gjs-left-width));
+    height: calc(100% - var(--gjs-canvas-top));
+    position: -ms-device-fixed;
+    left: 0;
+    top: var(--gjs-canvas-top)
+}
