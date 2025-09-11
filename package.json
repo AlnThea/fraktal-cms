@@ -42,6 +42,7 @@
         "grapesjs": "^0.22.12",
         "grapesjs-blocks-basic": "^1.0.2",
         "grapesjs-blocks-flexbox": "^1.0.1",
+        "grapesjs-click": "^0.0.10",
         "grapesjs-component-code-editor": "^1.0.20",
         "grapesjs-component-countdown": "^1.0.2",
         "grapesjs-custom-code": "^1.0.2",

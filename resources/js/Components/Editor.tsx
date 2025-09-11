@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import grapesjs from 'grapesjs';
+import grapesjs, { usePlugin, Block, Component, Editor as GjsEditor } from 'grapesjs';
 import gjsBlockBasic from 'grapesjs-blocks-basic';
 import gjsTailwindCSS from 'grapesjs-tailwindcss-plugin';
+import gjsClick, { getMouseListener, showGrabbedInfo, hideGrabbedInfo, MouseListener } from 'grapesjs-click';
 import customAppCss from '../../css/app.css?raw';
 
 interface EditorProps {
@@ -10,11 +11,28 @@ interface EditorProps {
     editorRef?: React.MutableRefObject<any>;
 }
 
+const grabIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path fill="currentColor" d="M188 76a31.85 31.85 0 0 0-11.21 2A32 32 0 0 0 128 67a32 32 0 0 0-52 25v16h-8a32 32 0 0 0-32 32v12a92 92 0 0 0 184 0v-44a32 32 0 0 0-32-32m8 76a68 68 0 0 1-136 0v-12a8 8 0 0 1 8-8h8v20a12 12 0 0 0 24 0V92a8 8 0 0 1 16 0v28a12 12 0 0 0 24 0V92a8 8 0 0 1 16 0v28a12 12 0 0 0 24 0v-12a8 8 0 0 1 16 0Z"/></svg>';
+
+const capitalizeValue = (value?: string) => {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value.charAt(0).toUpperCase() + value.replace(/[_-]+/, ' ').slice(1);
+};
+
 const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
     const editorInstanceRef = useRef<any>(null);
     const editorRefInternal = useRef<any>(null);
-    const [isSidebarLeftOpen, setIsSidebarLeftOpen] = useState(true);
-    const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(true);
+    const [isSidebarLeftOpen, setIsSidebarLeftOpen] = useState(false);
+    const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(false);
+    const [activeBlocksPanel, setActiveBlocksPanel] = useState('basic');
+
+    useEffect(() => {
+        if (window.innerWidth >= 1024) {
+            setIsSidebarLeftOpen(true);
+            setIsSidebarRightOpen(true);
+        }
+    }, []);
 
     useEffect(() => {
         if (!editorInstanceRef.current) return;
@@ -24,12 +42,11 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             height: '88vh',
             width: '100%',
             storageManager: { type: 'none' },
-            // Arahkan semua panel UI ke container yang unik di dalam panel kanan
             layerManager: { appendTo: '.layers-container' },
             selectorManager: { appendTo: '.styles-container' },
             styleManager: { appendTo: '.styles-container' },
             traitManager: { appendTo: '.traits-container' },
-            blockManager: { appendTo: '#blocks' },
+            blockManager: { appendTo: '.blocks-container' },
             deviceManager: {
                 devices: [
                     { name: 'Desktop', width: '' },
@@ -37,23 +54,74 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 ],
             },
             panels: {
-                defaults: [
-                    // Hapus panel default karena kita akan membuatnya secara manual di JSX
-                ],
+                defaults: [],
             },
-            plugins: [gjsTailwindCSS, gjsBlockBasic],
-            pluginsOpts: {
-                'grapesjs-tailwindcss-plugin': {
-                    // Opsi plugin
-                },
-            },
+            plugins: [
+                usePlugin(gjsTailwindCSS),
+                usePlugin(gjsBlockBasic),
+                usePlugin(gjsClick),
+            ],
         });
 
         editorRefInternal.current = editor;
         if (editorRef) editorRef.current = editor;
 
-        // --- COMMANDS ---
+        // --- GRAPESJS-CLICK LOGIC ---
+        const grabbedInfoEl = document.getElementById('grabbed-info');
+        if (grabbedInfoEl) {
+            const mouseListener = getMouseListener(editor, grabbedInfoEl);
 
+            const resetGrabbedInfo = (element: HTMLElement) => {
+                element.textContent = '';
+                element.style.top = '0';
+                element.style.left = '0';
+            };
+
+            editor.on('click:grab-block', (block: Block) => {
+                const label = block.getLabel();
+                const category = block.getCategoryLabel();
+                grabbedInfoEl.textContent = `${label} (${category})`;
+                showGrabbedInfo(grabbedInfoEl, mouseListener);
+            });
+
+            editor.on('click:drop-block', () => {
+                resetGrabbedInfo(grabbedInfoEl);
+                hideGrabbedInfo(grabbedInfoEl, mouseListener);
+            });
+
+            editor.on('click:grab-component', (component: Component) => {
+                const { name, type } = component.props();
+                const label = name || capitalizeValue(type);
+                grabbedInfoEl.textContent = label;
+                showGrabbedInfo(grabbedInfoEl, mouseListener);
+            });
+
+            editor.on('click:drop-component', () => {
+                resetGrabbedInfo(grabbedInfoEl);
+                hideGrabbedInfo(grabbedInfoEl, mouseListener);
+            });
+        }
+
+        editor.on('component:selected', (selectedComponent: Component) => {
+            const { type: componentType } = selectedComponent.props();
+            const toolbar = selectedComponent.get('toolbar') || [];
+            const isWrapperComponent = componentType === 'wrapper';
+            const hasGrabbedAction = toolbar.some(({ command }) => command === 'click:grab-component');
+
+            if (isWrapperComponent || hasGrabbedAction) {
+                return;
+            }
+
+            toolbar.unshift({
+                label: grabIcon,
+                command: 'click:grab-component',
+                attributes: { title: 'Grab this component' },
+            });
+
+            selectedComponent.set('toolbar', toolbar);
+        });
+
+        // --- COMMANDS ---
         editor.Commands.add('export-template', {
             run(editor) {
                 const html = editor.getHtml();
@@ -87,7 +155,6 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             },
         });
 
-        // Fungsi showOnly yang lebih sederhana
         const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
             const panels = {
                 layers: document.querySelector('.layers-container'),
@@ -118,8 +185,28 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
         editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
         editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
 
-        // Tampilkan satu panel secara default saat editor siap
-        editor.on('load', () => showOnly('styles'));
+        editor.on('device:change', () => {
+            const device = editor.getDevice();
+            if (device === 'Mobile') {
+                setIsSidebarLeftOpen(false);
+                setIsSidebarRightOpen(false);
+            } else if (device === 'Desktop') {
+                setIsSidebarLeftOpen(true);
+                setIsSidebarRightOpen(true);
+            }
+        });
+
+        editor.on('load', () => {
+            showOnly('styles');
+
+            // Add onClick to all blocks to enable grab functionality
+            const blockManager = editor.BlockManager;
+            blockManager.getAll().forEach((block: Block) => {
+                block.set('onClick', () => {
+                    editor.runCommand('click:grab-block', { id: block.getId() });
+                });
+            });
+        });
 
         if (initialData) {
             editor.loadProjectData(initialData);
@@ -138,9 +225,14 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
     return (
         <div className="flex bg-slate-300 w-full relative h-screen overflow-hidden">
+            <div
+                id="grabbed-info"
+                style={{ position: 'absolute', display: 'none', padding: '5px 10px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: '5px', zIndex: 10000, pointerEvents: 'none' }}
+            ></div>
+
             {/* Tombol Toggle Sidebar Kiri */}
             <div
-                className={`absolute top-20 z-30 transition-all duration-300 ease-in-out ${
+                className={`absolute top-20 z-40 transition-all duration-300 ease-in-out ${
                     isSidebarLeftOpen ? 'left-[17.9rem]' : 'left-0'
                 }`}
             >
@@ -160,13 +252,26 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
             {/* Panel Kiri (Sidebar) */}
             <aside
-                className={`absolute left-0 bg-white w-72 z-20 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
+                className={`absolute left-0 bg-white w-72 z-40 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
                     isSidebarLeftOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 <div className="p-4 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
-                    {/* Anda bisa menambahkan header atau tombol lain di sini jika perlu */}
-                    <div id="blocks" className="blocks-container flex-grow overflow-y-auto"></div>
+                    <div className="flex gap-2 mb-2">
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('basic')}
+                        >
+                            Basic Blocks
+                        </button>
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'tailwind' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('tailwind')}
+                        >
+                            Tailwind Blocks
+                        </button>
+                    </div>
+                    <div className="blocks-container flex-grow overflow-y-auto"></div>
                 </div>
             </aside>
 
@@ -210,7 +315,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     </div>
 
                     {/* Tombol Toggle Sidebar Kanan (Hanya Muncul di Mobile) */}
-                    <div className={`absolute top-20 z-30 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
+                    <div className={`absolute top-20 z-40 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
                         <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-l-2 border-b-2 rounded-tl-xl rounded-bl-xl border-teal-300">
                             <button title="Style Manager" className="p-1" onClick={() => setIsSidebarRightOpen(!isSidebarRightOpen)}
                                     dangerouslySetInnerHTML={{
@@ -224,7 +329,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
                     {/* Panel Kanan (Digabung untuk Mobile & Desktop) */}
                     <aside
-                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-20
+                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-40
                                    flex-shrink-0
                                    lg:relative lg:w-72 lg:translate-x-0 lg:border-l-2 lg:border-teal-300
                                    absolute top-0 right-0 h-full w-72
