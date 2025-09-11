@@ -1,0 +1,291 @@
+import React, { useEffect, useRef, useState } from 'react';
+import grapesjs from 'grapesjs';
+import gjsBlockBasic from 'grapesjs-blocks-basic';
+import gjsTailwindCSS from 'grapesjs-tailwindcss-plugin';
+import customAppCss from '../../css/app.css?raw';
+
+interface EditorProps {
+    onSave?: (data: string) => void;
+    initialData?: any;
+    editorRef?: React.MutableRefObject<any>;
+}
+
+const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
+    const editorInstanceRef = useRef<any>(null);
+    const editorRefInternal = useRef<any>(null);
+    const [isSidebarLeftOpen, setIsSidebarLeftOpen] = useState(true);
+    const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(true);
+
+    // State untuk mengontrol blok yang aktif di sidebar kiri
+    const [activeBlocksPanel, setActiveBlocksPanel] = useState('basic');
+
+    useEffect(() => {
+        if (!editorInstanceRef.current) return;
+
+        const editor = grapesjs.init({
+            container: editorInstanceRef.current,
+            height: '88vh',
+            width: '100%',
+            storageManager: { type: 'none' },
+            // Arahkan semua panel UI ke container yang unik di dalam panel kanan
+            layerManager: { appendTo: '.layers-container' },
+            selectorManager: { appendTo: '.styles-container' },
+            styleManager: { appendTo: '.styles-container' },
+            traitManager: { appendTo: '.traits-container' },
+            // Ubah appendTo blockManager untuk menargetkan kontainer baru
+            blockManager: { appendTo: '.blocks-container' },
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Mobile', width: '320px', widthMedia: '480px' },
+                ],
+            },
+            panels: {
+                defaults: [
+                    // Hapus panel default karena kita akan membuatnya secara manual di JSX
+                ],
+            },
+            plugins: [gjsTailwindCSS, gjsBlockBasic],
+            pluginsOpts: {
+                'grapesjs-tailwindcss-plugin': {
+                    // Opsi plugin
+                },
+            },
+        });
+
+        editorRefInternal.current = editor;
+        if (editorRef) editorRef.current = editor;
+
+        // --- COMMANDS ---
+
+        editor.Commands.add('export-template', {
+            run(editor) {
+                const html = editor.getHtml();
+                const css = editor.getCss();
+                const code = `<div>${html}</div><style>${css}</style>`;
+                const modalContent = `
+                  <textarea readonly style="width:100%; height: 250px; background-color: #1e1e1e; color: #d4d4d4; border: none; border-radius: 5px;">${code}</textarea>
+                  <button id="copy-to-clipboard-btn" class="gjs-btn-prim" style="display: block; margin: 10px auto 0;">Copy</button>
+                `;
+                editor.Modal.setTitle('Export Template').setContent(modalContent).open();
+                const modalContentEl = editor.Modal.getContentEl();
+                if (modalContentEl) {
+                    const copyBtn = modalContentEl.querySelector<HTMLButtonElement>('#copy-to-clipboard-btn');
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', () => {
+                            navigator.clipboard.writeText(code).then(() => {
+                                copyBtn.innerText = 'Copied!';
+                                setTimeout(() => (copyBtn.innerText = 'Copy'), 2000);
+                            });
+                        });
+                    }
+                }
+            },
+        });
+
+        editor.Commands.add('show-json', {
+            run(editor) {
+                editor.Modal.setTitle('Components JSON')
+                    .setContent(`<textarea style="width:100%; height:250px;">${JSON.stringify(editor.getComponents(), null, 2)}</textarea>`)
+                    .open();
+            },
+        });
+
+        // Fungsi showOnly yang lebih sederhana
+        const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
+            const panels = {
+                layers: document.querySelector('.layers-container'),
+                styles: document.querySelector('.styles-container'),
+                traits: document.querySelector('.traits-container'),
+            };
+
+            Object.keys(panels).forEach(key => {
+                const el = panels[key as keyof typeof panels];
+                if (el instanceof HTMLElement) {
+                    el.style.display = key === activePanel ? '' : 'none';
+                }
+            });
+        };
+
+        editor.Commands.add('show-blocks', {
+            run() {
+                const blocksPanel = document.querySelector<HTMLElement>('.blocks-container');
+                if (blocksPanel) {
+                    blocksPanel.style.display = blocksPanel.style.display === 'none' ? '' : 'none';
+                }
+            },
+        });
+
+        editor.Commands.add('show-layers', { run: () => showOnly('layers') });
+        editor.Commands.add('show-styles', { run: () => showOnly('styles') });
+        editor.Commands.add('show-traits', { run: () => showOnly('traits') });
+        editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
+        editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
+
+        // Tampilkan satu panel secara default saat editor siap
+        editor.on('load', () => showOnly('styles'));
+
+        if (initialData) {
+            editor.loadProjectData(initialData);
+        }
+
+        // Tangani pembaruan Block Manager saat state berubah
+        const updateBlockManager = () => {
+            const blockManager = editor.BlockManager;
+            const allBlocks = blockManager.getAll();
+
+            allBlocks.forEach((block: any) => {
+                const category = block.get('category').id;
+                const isBasic = category === 'Basic';
+                const isTailwind = category === 'Tailwind Blocks';
+
+                // Sembunyikan atau tampilkan blok berdasarkan panel yang aktif
+                if (activeBlocksPanel === 'basic') {
+                    block.set('private', !isBasic);
+                } else if (activeBlocksPanel === 'tailwind') {
+                    block.set('private', !isTailwind);
+                } else {
+                    // Tampilkan semua jika tidak ada yang dipilih
+                    block.set('private', false);
+                }
+            });
+        };
+
+        // Panggil fungsi saat editor siap dan ketika state berubah
+        updateBlockManager();
+        editor.on('change:activeBlocksPanel', updateBlockManager);
+
+        return () => {
+            editor.destroy();
+        };
+    }, [editorRef, activeBlocksPanel]); // Tambahkan activeBlocksPanel sebagai dependency
+
+    const handleCommand = (command: string) => {
+        if (editorRefInternal.current) {
+            editorRefInternal.current.Commands.run(command);
+        }
+    };
+
+    return (
+        <div className="flex bg-slate-300 w-full relative h-screen overflow-hidden">
+            {/* Tombol Toggle Sidebar Kiri */}
+            <div
+                className={`absolute top-20 z-30 transition-all duration-300 ease-in-out ${
+                    isSidebarLeftOpen ? 'left-[17.9rem]' : 'left-0'
+                }`}
+            >
+                <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-r-2 border-b-2 rounded-tr-xl rounded-br-xl border-teal-300">
+                    <button
+                        title="Block Manager"
+                        className="p-1"
+                        onClick={() => setIsSidebarLeftOpen(!isSidebarLeftOpen)}
+                        dangerouslySetInnerHTML={{
+                            __html: isSidebarLeftOpen
+                                ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>'
+                                : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-blocks"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 4a1 1 0 0 1 1 -1h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1z" /><path d="M3 14h12a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h3a2 2 0 0 1 2 2v12" /></svg>',
+                        }}
+                    />
+                </div>
+            </div>
+
+            {/* Panel Kiri (Sidebar) */}
+            <aside
+                className={`absolute left-0 bg-white w-72 z-20 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
+                    isSidebarLeftOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="p-4 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
+                    {/* Block Switcher Tabs */}
+                    <div className="flex gap-2 mb-2">
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('basic')}
+                        >
+                            Basic Blocks
+                        </button>
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'tailwind' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('tailwind')}
+                        >
+                            Tailwind Blocks
+                        </button>
+                    </div>
+
+                    {/* Container untuk Block Manager */}
+                    <div className="blocks-container flex-grow overflow-y-auto"></div>
+                </div>
+            </aside>
+
+            {/* Area Editor Utama */}
+            <main className="flex flex-col flex-grow relative bg-slate-300">
+                <div className="panel__top h-12 w-full flex justify-between items-center px-4 bg-slate-700 text-white z-10">
+                    <div className="flex items-center space-x-2">
+                        {[
+                            { id: 'core:preview', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>', title: 'Preview' },
+                            { id: 'export-template', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 17h6" /><path d="M9 13h6" /></svg>', title: 'Export Code' },
+                            { id: 'show-json', label: '{...}', title: 'View JSON' },
+                        ].map((btn) => (
+                            <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                        ))}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        {[
+                            { id: 'set-device-desktop', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10z" /><path d="M7 20h10" /><path d="M9 16v4" /><path d="M15 16v4" /></svg>', title: 'Desktop View' },
+                            { id: 'set-device-mobile', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14z" /><path d="M11 4h2" /><path d="M12 17v.01" /></svg>', title: 'Mobile View' },
+                        ].map((btn) => (
+                            <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                        ))}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        {[
+                            { id: 'show-layers', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" /><path d="M16 16v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h2" /></svg>', title: 'Layers' },
+                            { id: 'show-styles', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>', title: 'Styles' },
+                            { id: 'show-traits', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>', title: 'Traits' },
+                        ].map((btn) => (
+                            <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex flex-grow w-full">
+                    {/* Canvas Utama */}
+                    <div className="flex-grow editor-canvas">
+                        <div ref={editorInstanceRef}></div>
+                    </div>
+
+                    {/* Tombol Toggle Sidebar Kanan (Hanya Muncul di Mobile) */}
+                    <div className={`absolute top-20 z-30 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
+                        <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-l-2 border-b-2 rounded-tl-xl rounded-bl-xl border-teal-300">
+                            <button title="Style Manager" className="p-1" onClick={() => setIsSidebarRightOpen(!isSidebarRightOpen)}
+                                    dangerouslySetInnerHTML={{
+                                        __html: isSidebarRightOpen
+                                            ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>'
+                                            : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>',
+                                    }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Panel Kanan (Digabung untuk Mobile & Desktop) */}
+                    <aside
+                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-20
+                                   flex-shrink-0
+                                   lg:relative lg:w-72 lg:translate-x-0 lg:border-l-2 lg:border-teal-300
+                                   absolute top-0 right-0 h-full w-72
+                                   ${isSidebarRightOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                    >
+                        <div className="panel__right h-full p-4 flex flex-col space-y-2 overflow-y-auto">
+                            <div className="layers-container" style={{ display: 'none' }}></div>
+                            <div className="styles-container" style={{ display: 'none' }}></div>
+                            <div className="traits-container" style={{ display: 'none' }}></div>
+                        </div>
+                    </aside>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default Editor;

@@ -1,0 +1,5 @@
+editor.BlockManager.add('my-custom-block', {
+        label: 'Custom Div',
+        content: '<div style="padding: 20px; background: #f0f0f0;">Custom static content</div>',
+        category: 'Extra',
+    });

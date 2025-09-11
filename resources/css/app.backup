@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+@source inline(' max-w-xs max-w-sm max-w-md max-w-lg max-w-xl max-w-2xl max-w-3xl max-w-4xl max-w-5xl max-w-6xl max-w-7xl');
+/*@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views!*.blade.php';*/
+/*@source '../../storage/framework/views!*.php';*/
+/*@source '..!**!*.blade.php';*/
+/*@source '..!**!*.js';*/
+/*@source "../views";*/
+
+[x-cloak] {
+    display: none;
+}
+/* Background panel */
+.gjs-one-bg {
+    background-color: white !important;
+}
+
+/* Block layout (3 kolom, kecil) */
+.gjs-block {
+    flex: 1 1 calc(33.33% - 2px) !important;
+    height: 50px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    transition: transform 0.2s ease !important;
+}
+
+.gjs-block:hover {
+    transform: translateY(-4px) !important;
+    background-color: #f9f9f9 !important;
+}
+
+.gjs-block__media {
+    width: 25px !important;
+    height: 25px !important;
+}
+
+.gjs-block__media svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.gjs-block-label {
+    font-size: 10px !important;
+    margin-top: 3px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Animasi border bawah pada kategori */
+.gjs-block-category .gjs-title {
+    border-bottom: none !important;
+    position: relative;
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.gjs-block-category .gjs-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #000;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s ease;
+}
+
+.gjs-block-category .gjs-title:hover::after {
+    transform: scaleX(1);
+}
+
+/* Hanya tampilkan border bawah pada panel-panel GrapeJS */
+.gjs-pn-panels {
+    /* Opsional: tambahkan background jika perlu */
+    background-color: white !important;
+}
+
+.gjs-pn-panel {
+    /* Hilangkan semua border */
+    border: none !important;
+    /* Tambahkan hanya border bawah */
+    border-bottom: 1px solid #e5e7eb !important;
+    /* Hilangkan shadow jika ada */
+    box-shadow: none !important;
+    /* Padding/height bisa disesuaikan */
+    padding: 4px 0 !important;
+}
+
+/* Opsional: Hilangkan border bawah di panel terakhir */
+.gjs-pn-panels > .gjs-pn-panel:last-child {
+    border-bottom: none !important;
+}
+/* Atur parent sebagai flex container (sudah otomatis) */
+.gjs-pn-panels {
+    display: flex !important;
+}
