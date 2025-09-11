@@ -346,5 +346,4 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
         </div>
     );
 };
-
 export default Editor;
