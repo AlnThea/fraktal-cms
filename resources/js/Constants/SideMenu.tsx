@@ -4,7 +4,7 @@ import {
     IconUserCircle,
     IconArticle,
     IconSettings,
-    IconTags, IconLogout
+    IconTags, IconLogout, IconPlug
 } from '@tabler/icons-react';
 import React from 'react';
 
@@ -58,6 +58,14 @@ export const SideMenu: MenuGroup[] = [
                 children: [
                     { label: 'All Pages', route: 'pages.index' },
                     { label: 'New Pages', route: 'pages.create' },
+                ],
+                position: 'top',
+            },
+            {
+                label: 'Plugins',
+                icon: () => <IconPlug size={20}/>,
+                children: [
+                    { label: 'Installed Plugin', route: 'plugin.index' },
                 ],
                 position: 'top',
             },

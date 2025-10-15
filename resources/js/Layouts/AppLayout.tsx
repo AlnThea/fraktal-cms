@@ -289,11 +289,8 @@ export default function AppLayout({title, renderHeader, breadcrumb, children}: P
                                                 </div>
                                             );
                                         })}
-
-
                                     </div>
                                 )}
-
                             </div>
                         </div>
                     </aside>

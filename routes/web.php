@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PluginController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -13,6 +14,10 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 })->name('homepage');
+
+// API route untuk GrapeJS blocks - bisa diakses tanpa auth
+Route::get('/api/plugin/grapejs-blocks', [PluginController::class, 'getGrapeJSBlocks'])
+    ->name('plugin.grapejs.blocks');
 
 Route::middleware([
     'auth:sanctum',
@@ -27,21 +32,27 @@ Route::middleware([
         return Inertia::render('Post/NewPost');
     })->name('editor');
 
+    Route::name('pages.')->prefix('pages')->group(function () {
+        Route::get('/', [PageController::class, 'index'])->name('index');
+        Route::get('/new-pages', [PageController::class, 'create'])->name('create');
+        Route::put('/update-status-multiple', [PageController::class, 'updateMultipleStatus'])->name('update.multiple.status');
+        Route::put('/{page}/status', [PageController::class, 'updateStatus'])->name('update.status');
+        Route::delete('/destroy-multiple', [PageController::class, 'destroyMultiple'])->name('destroy.multiple');
+        Route::post('/', [PageController::class, 'store'])->name('store');
+        Route::get('/{slug}/e/{page}/edit', [PageController::class, 'edit'])->name('edit');
+        Route::put('/{page}', [PageController::class, 'update'])->name('update');
+        Route::delete('/{page}', [PageController::class, 'destroy'])->name('destroy');
+    });
 
+    // Plugin management routes - hanya untuk authenticated users
+    Route::name('plugin.')->prefix('plugin')->group(function () {
+        Route::get('/', [PluginController::class, 'index'])->name('index');
+        Route::post('/', [PluginController::class, 'store'])->name('store');
+        Route::put('/{plugin}/activate', [PluginController::class, 'activate'])->name('activate');
+        Route::put('/{plugin}/deactivate', [PluginController::class, 'deactivate'])->name('deactivate');
+        Route::delete('/{plugin}', [PluginController::class, 'destroy'])->name('destroy');
+    });
 
-
-    Route::get('/pages/new-pages', [PageController::class, 'create'])->name('pages.create');
-    Route::get('/pages', [PageController::class, 'index'])->name('pages.index');
-
-    Route::put('/pages/update-status-multiple', [PageController::class, 'updateMultipleStatus'])->name('pages.update.multiple.status');
-    Route::put('/pages/{page}/status', [PageController::class, 'updateStatus'])->name('pages.update.status');
-    Route::delete('/pages/destroy-multiple', [PageController::class, 'destroyMultiple'])->name('pages.destroy.multiple');
-
-    Route::post('/pages', [PageController::class, 'store'])->name('pages.store');
-    Route::get('/pages/{slug}/e/{page}/edit', [PageController::class, 'edit'])->name('pages.edit');
-    Route::put('/pages/{page}', [PageController::class, 'update'])->name('pages.update');
-    Route::delete('/pages/{page}', [PageController::class, 'destroy'])->name('pages.destroy');
 
 });
-
 
