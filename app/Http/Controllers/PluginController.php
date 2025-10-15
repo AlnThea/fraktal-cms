@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Plugin;
 use App\Services\PluginService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class PluginController extends Controller
@@ -126,5 +127,27 @@ class PluginController extends Controller
                 'blocks' => []
             ], 500);
         }
+    }
+
+    public function getActivePlugins()
+    {
+        $activePlugins = Plugin::where('is_active', true)->get();
+
+        return $activePlugins->map(function($plugin) {
+            // Generate full URL untuk plugin file
+            $pluginUrl = url("storage/plugins/{$plugin->slug}/dist/t-core-blocks.umd.js");
+
+            return [
+                'id' => $plugin->id,
+                'name' => $plugin->name,
+                'slug' => $plugin->slug,
+                'version' => $plugin->version,
+                'status' => $plugin->is_active ? 'active' : 'inactive',
+                'assets' => [
+                    'js' => [$pluginUrl]
+                ],
+                'main_file' => $pluginUrl // FULL URL: http://localhost:8000/storage/plugins/t-core-blocks/dist/t-core-blocks.umd.js
+            ];
+        });
     }
 }

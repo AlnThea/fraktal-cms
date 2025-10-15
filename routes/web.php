@@ -15,6 +15,18 @@ Route::get('/', function () {
     ]);
 })->name('homepage');
 
+Route::get('/storage/plugins/{path}', function ($path) {
+    $filePath = storage_path("app/plugins/{$path}");
+
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+
+    return response()->file($filePath, [
+        'Content-Type' => 'application/javascript'
+    ]);
+})->where('path', '.*');
+
 // API route untuk GrapeJS blocks - bisa diakses tanpa auth
 Route::get('/api/plugin/grapejs-blocks', [PluginController::class, 'getGrapeJSBlocks'])
     ->name('plugin.grapejs.blocks');

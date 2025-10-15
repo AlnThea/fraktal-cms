@@ -4,6 +4,19 @@ import gjsBlockBasic from 'grapesjs-blocks-basic';
 import gjsTailwindCSS from 'grapesjs-tailwindcss-plugin';
 import gjsClick, { getMouseListener, showGrabbedInfo, hideGrabbedInfo, MouseListener } from 'grapesjs-click';
 import customAppCss from '../../css/app.css?raw';
+import axios from 'axios';
+
+interface Plugin {
+    id: number;
+    name: string;
+    slug: string;
+    version: string;
+    status: string;
+    assets: {
+        js: string[];
+    };
+    main_file: string;
+}
 
 interface EditorProps {
     onSave?: (data: string) => void;
@@ -27,6 +40,58 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
     const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(false);
     const [activeBlocksPanel, setActiveBlocksPanel] = useState('basic');
 
+    const fetchActivePlugins = async (): Promise<Plugin[]> => {
+        try {
+            const response = await axios.get('/api/active-plugins'); // Endpoint untuk get plugins aktif
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch plugins:', error);
+            return [];
+        }
+    };
+
+    const loadPlugin = (plugin: Plugin): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            // Untuk UMD build, kita harus load sebagai script, bukan ES6 module
+            const script = document.createElement('script');
+            script.src = plugin.main_file;
+
+            script.onload = () => {
+                console.log('✅ UMD Script loaded, checking global exports...');
+
+                // Cek berbagai possible global names dari UMD build
+                const possibleGlobals = [
+                    'TCoreBlocks',      // Dari name: 'TCoreBlocks' di vite config
+                    'tCoreBlocks',
+                    't_core_blocks'
+                ];
+
+                let pluginModule = null;
+                for (const globalName of possibleGlobals) {
+                    if (window[globalName as any]) {
+                        pluginModule = window[globalName as any];
+                        console.log(`🎯 Found plugin at window.${globalName}`);
+                        break;
+                    }
+                }
+
+                if (pluginModule) {
+                    resolve(pluginModule);
+                } else {
+                    console.error('❌ No global export found. Available globals:', Object.keys(window).filter(k => k.includes('Core') || k.includes('Block')));
+                    reject(new Error(`Plugin ${plugin.name} loaded but no global export found`));
+                }
+            };
+
+            script.onerror = () => {
+                console.error(`❌ Failed to load script: ${plugin.main_file}`);
+                reject(new Error(`Failed to load plugin: ${plugin.name}`));
+            };
+
+            document.head.appendChild(script);
+        });
+    };
+
     useEffect(() => {
         if (window.innerWidth >= 1024) {
             setIsSidebarLeftOpen(true);
@@ -37,184 +102,231 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
     useEffect(() => {
         if (!editorInstanceRef.current) return;
 
-        const editor = grapesjs.init({
-            container: editorInstanceRef.current,
-            height: '88vh',
-            width: '100%',
-            storageManager: { type: 'none' },
-            layerManager: { appendTo: '.layers-container' },
-            selectorManager: { appendTo: '.styles-container' },
-            styleManager: { appendTo: '.styles-container' },
-            traitManager: { appendTo: '.traits-container' },
-            blockManager: { appendTo: '.blocks-container' },
-            deviceManager: {
-                devices: [
-                    { name: 'Desktop', width: '' },
-                    { name: 'Mobile', width: '320px', widthMedia: '480px' },
+        const initializeEditor = async () => {
+            // Fetch active plugins dari CMS
+            const activePlugins = await fetchActivePlugins();
+
+            const editor = grapesjs.init({
+                container: editorInstanceRef.current,
+                height: '88vh',
+                width: '100%',
+                storageManager: { type: 'none' },
+                layerManager: { appendTo: '.layers-container' },
+                selectorManager: { appendTo: '.styles-container' },
+                styleManager: { appendTo: '.styles-container' },
+                traitManager: { appendTo: '.traits-container' },
+                blockManager: { appendTo: '.blocks-container' },
+                deviceManager: {
+                    devices: [
+                        { name: 'Desktop', width: '' },
+                        { name: 'Mobile', width: '320px', widthMedia: '480px' },
+                    ],
+                },
+                panels: {
+                    defaults: [],
+                },
+                plugins: [
+                    usePlugin(gjsTailwindCSS),
+                    usePlugin(gjsBlockBasic),
+                    usePlugin(gjsClick),
+                    // Load plugins dari CMS secara dinamis
+                    ...activePlugins.map(plugin =>
+                        usePlugin(async (editor: any, options: any) => {
+                            try {
+                                console.log(`🔄 Loading plugin: ${plugin.name}...`);
+                                const pluginModule = await loadPlugin(plugin);
+                                console.log(`✅ Plugin ${plugin.name} loaded:`, pluginModule);
+
+                                // Handle berbagai format export
+                                if (typeof pluginModule === 'function') {
+                                    // Langsung function
+                                    console.log(`🚀 Initializing plugin ${plugin.name} as function...`);
+                                    return pluginModule(editor, options);
+                                }
+                                else if (pluginModule && typeof pluginModule.TCoreBlocks === 'function') {
+                                    // Export sebagai TCoreBlocks property
+                                    console.log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
+                                    return pluginModule.TCoreBlocks(editor, options);
+                                }
+                                else if (pluginModule && typeof pluginModule.default === 'function') {
+                                    // Export sebagai default property
+                                    console.log(`🚀 Initializing plugin ${plugin.name} via default export...`);
+                                    return pluginModule.default(editor, options);
+                                }
+                                else {
+                                    console.warn(`❌ Plugin ${plugin.name} has no initialize function:`, pluginModule);
+                                    return null;
+                                }
+                            } catch (error) {
+                                console.error(`💥 Failed to initialize plugin ${plugin.name}:`, error);
+                            }
+                        })
+                    ),
                 ],
-            },
-            panels: {
-                defaults: [],
-            },
-            plugins: [
-                usePlugin(gjsTailwindCSS),
-                usePlugin(gjsBlockBasic),
-                usePlugin(gjsClick),
-            ],
-        });
-
-        editorRefInternal.current = editor;
-        if (editorRef) editorRef.current = editor;
-
-        // --- GRAPESJS-CLICK LOGIC ---
-        const grabbedInfoEl = document.getElementById('grabbed-info');
-        if (grabbedInfoEl) {
-            const mouseListener = getMouseListener(editor, grabbedInfoEl);
-
-            const resetGrabbedInfo = (element: HTMLElement) => {
-                element.textContent = '';
-                element.style.top = '0';
-                element.style.left = '0';
-            };
-
-            editor.on('click:grab-block', (block: Block) => {
-                const label = block.getLabel();
-                const category = block.getCategoryLabel();
-                grabbedInfoEl.textContent = `${label} (${category})`;
-                showGrabbedInfo(grabbedInfoEl, mouseListener);
+                pluginsOpts: {
+                    't-core-blocks': {
+                        // options dari plugin.json
+                    },
+                    // Tambah options untuk plugins lainnya
+                },
             });
 
-            editor.on('click:drop-block', () => {
-                resetGrabbedInfo(grabbedInfoEl);
-                hideGrabbedInfo(grabbedInfoEl, mouseListener);
-            });
+            editorRefInternal.current = editor;
+            if (editorRef) editorRef.current = editor;
 
-            editor.on('click:grab-component', (component: Component) => {
-                const { name, type } = component.props();
-                const label = name || capitalizeValue(type);
-                grabbedInfoEl.textContent = label;
-                showGrabbedInfo(grabbedInfoEl, mouseListener);
-            });
+            // --- GRAPESJS-CLICK LOGIC ---
+            const grabbedInfoEl = document.getElementById('grabbed-info');
+            if (grabbedInfoEl) {
+                const mouseListener = getMouseListener(editor, grabbedInfoEl);
 
-            editor.on('click:drop-component', () => {
-                resetGrabbedInfo(grabbedInfoEl);
-                hideGrabbedInfo(grabbedInfoEl, mouseListener);
-            });
-        }
+                const resetGrabbedInfo = (element: HTMLElement) => {
+                    element.textContent = '';
+                    element.style.top = '0';
+                    element.style.left = '0';
+                };
 
-        editor.on('component:selected', (selectedComponent: Component) => {
-            const { type: componentType } = selectedComponent.props();
-            const toolbar = selectedComponent.get('toolbar') || [];
-            const isWrapperComponent = componentType === 'wrapper';
-            const hasGrabbedAction = toolbar.some(({ command }) => command === 'click:grab-component');
+                editor.on('click:grab-block', (block: Block) => {
+                    const label = block.getLabel();
+                    const category = block.getCategoryLabel();
+                    grabbedInfoEl.textContent = `${label} (${category})`;
+                    showGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
 
-            if (isWrapperComponent || hasGrabbedAction) {
-                return;
+                editor.on('click:drop-block', () => {
+                    resetGrabbedInfo(grabbedInfoEl);
+                    hideGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+
+                editor.on('click:grab-component', (component: Component) => {
+                    const { name, type } = component.props();
+                    const label = name || capitalizeValue(type);
+                    grabbedInfoEl.textContent = label;
+                    showGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+
+                editor.on('click:drop-component', () => {
+                    resetGrabbedInfo(grabbedInfoEl);
+                    hideGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
             }
 
-            toolbar.unshift({
-                label: grabIcon,
-                command: 'click:grab-component',
-                attributes: { title: 'Grab this component' },
+            editor.on('component:selected', (selectedComponent: Component) => {
+                const { type: componentType } = selectedComponent.props();
+                const toolbar = selectedComponent.get('toolbar') || [];
+                const isWrapperComponent = componentType === 'wrapper';
+                const hasGrabbedAction = toolbar.some(({ command }) => command === 'click:grab-component');
+
+                if (isWrapperComponent || hasGrabbedAction) {
+                    return;
+                }
+
+                toolbar.unshift({
+                    label: grabIcon,
+                    command: 'click:grab-component',
+                    attributes: { title: 'Grab this component' },
+                });
+
+                selectedComponent.set('toolbar', toolbar);
             });
 
-            selectedComponent.set('toolbar', toolbar);
-        });
-
-        // --- COMMANDS ---
-        editor.Commands.add('export-template', {
-            run(editor) {
-                const html = editor.getHtml();
-                const css = editor.getCss();
-                const code = `<div>${html}</div><style>${css}</style>`;
-                const modalContent = `
+            // --- COMMANDS ---
+            editor.Commands.add('export-template', {
+                run(editor) {
+                    const html = editor.getHtml();
+                    const css = editor.getCss();
+                    const code = `<div>${html}</div><style>${css}</style>`;
+                    const modalContent = `
                   <textarea readonly style="width:100%; height: 250px; background-color: #1e1e1e; color: #d4d4d4; border: none; border-radius: 5px;">${code}</textarea>
                   <button id="copy-to-clipboard-btn" class="gjs-btn-prim" style="display: block; margin: 10px auto 0;">Copy</button>
                 `;
-                editor.Modal.setTitle('Export Template').setContent(modalContent).open();
-                const modalContentEl = editor.Modal.getContentEl();
-                if (modalContentEl) {
-                    const copyBtn = modalContentEl.querySelector<HTMLButtonElement>('#copy-to-clipboard-btn');
-                    if (copyBtn) {
-                        copyBtn.addEventListener('click', () => {
-                            navigator.clipboard.writeText(code).then(() => {
-                                copyBtn.innerText = 'Copied!';
-                                setTimeout(() => (copyBtn.innerText = 'Copy'), 2000);
+                    editor.Modal.setTitle('Export Template').setContent(modalContent).open();
+                    const modalContentEl = editor.Modal.getContentEl();
+                    if (modalContentEl) {
+                        const copyBtn = modalContentEl.querySelector<HTMLButtonElement>('#copy-to-clipboard-btn');
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', () => {
+                                navigator.clipboard.writeText(code).then(() => {
+                                    copyBtn.innerText = 'Copied!';
+                                    setTimeout(() => (copyBtn.innerText = 'Copy'), 2000);
+                                });
                             });
-                        });
+                        }
                     }
-                }
-            },
-        });
+                },
+            });
 
-        editor.Commands.add('show-json', {
-            run(editor) {
-                editor.Modal.setTitle('Components JSON')
-                    .setContent(`<textarea style="width:100%; height:250px;">${JSON.stringify(editor.getComponents(), null, 2)}</textarea>`)
-                    .open();
-            },
-        });
+            editor.Commands.add('show-json', {
+                run(editor) {
+                    editor.Modal.setTitle('Components JSON')
+                        .setContent(`<textarea style="width:100%; height:250px;">${JSON.stringify(editor.getComponents(), null, 2)}</textarea>`)
+                        .open();
+                },
+            });
 
-        const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
-            const panels = {
-                layers: document.querySelector('.layers-container'),
-                styles: document.querySelector('.styles-container'),
-                traits: document.querySelector('.traits-container'),
+            const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
+                const panels = {
+                    layers: document.querySelector('.layers-container'),
+                    styles: document.querySelector('.styles-container'),
+                    traits: document.querySelector('.traits-container'),
+                };
+
+                Object.keys(panels).forEach(key => {
+                    const el = panels[key as keyof typeof panels];
+                    if (el instanceof HTMLElement) {
+                        el.style.display = key === activePanel ? '' : 'none';
+                    }
+                });
             };
 
-            Object.keys(panels).forEach(key => {
-                const el = panels[key as keyof typeof panels];
-                if (el instanceof HTMLElement) {
-                    el.style.display = key === activePanel ? '' : 'none';
+            editor.Commands.add('show-blocks', {
+                run() {
+                    const blocksPanel = document.querySelector<HTMLElement>('.blocks-container');
+                    if (blocksPanel) {
+                        blocksPanel.style.display = blocksPanel.style.display === 'none' ? '' : 'none';
+                    }
+                },
+            });
+
+            editor.Commands.add('show-layers', { run: () => showOnly('layers') });
+            editor.Commands.add('show-styles', { run: () => showOnly('styles') });
+            editor.Commands.add('show-traits', { run: () => showOnly('traits') });
+            editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
+            editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
+
+            editor.on('device:change', () => {
+                const device = editor.getDevice();
+                if (device === 'Mobile') {
+                    setIsSidebarLeftOpen(false);
+                    setIsSidebarRightOpen(false);
+                } else if (device === 'Desktop') {
+                    setIsSidebarLeftOpen(true);
+                    setIsSidebarRightOpen(true);
                 }
             });
-        };
 
-        editor.Commands.add('show-blocks', {
-            run() {
-                const blocksPanel = document.querySelector<HTMLElement>('.blocks-container');
-                if (blocksPanel) {
-                    blocksPanel.style.display = blocksPanel.style.display === 'none' ? '' : 'none';
-                }
-            },
-        });
+            editor.on('load', () => {
+                showOnly('styles');
 
-        editor.Commands.add('show-layers', { run: () => showOnly('layers') });
-        editor.Commands.add('show-styles', { run: () => showOnly('styles') });
-        editor.Commands.add('show-traits', { run: () => showOnly('traits') });
-        editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
-        editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
-
-        editor.on('device:change', () => {
-            const device = editor.getDevice();
-            if (device === 'Mobile') {
-                setIsSidebarLeftOpen(false);
-                setIsSidebarRightOpen(false);
-            } else if (device === 'Desktop') {
-                setIsSidebarLeftOpen(true);
-                setIsSidebarRightOpen(true);
-            }
-        });
-
-        editor.on('load', () => {
-            showOnly('styles');
-
-            // Add onClick to all blocks to enable grab functionality
-            const blockManager = editor.BlockManager;
-            blockManager.getAll().forEach((block: Block) => {
-                block.set('onClick', () => {
-                    editor.runCommand('click:grab-block', { id: block.getId() });
+                // Add onClick to all blocks to enable grab functionality
+                const blockManager = editor.BlockManager;
+                blockManager.getAll().forEach((block: Block) => {
+                    block.set('onClick', () => {
+                        editor.runCommand('click:grab-block', { id: block.getId() });
+                    });
                 });
             });
-        });
 
-        if (initialData) {
-            editor.loadProjectData(initialData);
-        }
+            if (initialData) {
+                editor.loadProjectData(initialData);
+            }
 
-        return () => {
-            editor.destroy();
+            return () => {
+                editor.destroy();
+            };
         };
+
+        // Panggil fungsi async
+        initializeEditor();
     }, [editorRef]);
 
     const handleCommand = (command: string) => {
