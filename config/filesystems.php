@@ -50,8 +50,10 @@ return [
         'plugins' => [
             'driver' => 'local',
             'root' => storage_path('app/plugins'),
-            'url' => env('APP_URL').'/storage/plugins',
+            'url' => env('APP_URL').'/plugins', // Gunakan /plugins bukan /storage/plugins
             'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
         ],
 
         's3' => [

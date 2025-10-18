@@ -18,9 +18,19 @@ class PluginService
         $this->pluginsPath = storage_path('app/plugins/');
         $this->publicPath = public_path('plugins/');
 
-        // Ensure directories exist
-        File::ensureDirectoryExists($this->pluginsPath);
-        File::ensureDirectoryExists($this->publicPath);
+        // Ensure directories exist - dengan error handling
+        try {
+            if (!File::exists($this->pluginsPath)) {
+                File::ensureDirectoryExists($this->pluginsPath, 0755, true);
+            }
+
+            if (!File::exists($this->publicPath)) {
+                File::ensureDirectoryExists($this->publicPath, 0755, true);
+            }
+        } catch (\Exception $e) {
+            // Log warning tapi jangan throw error
+            \Log::warning('Directory creation warning: ' . $e->getMessage());
+        }
     }
 
     public function uploadPlugin($file)
@@ -62,6 +72,13 @@ class PluginService
             // Validate plugin.json structure
             $validatedConfig = $this->validatePluginConfig($pluginConfig);
 
+            // Tentukan main_file dan assets dari plugin.json
+            $mainFile = $validatedConfig['main_file'] ?? $validatedConfig['assets']['js'][0] ?? "{$slug}.umd.js";
+            $assets = $validatedConfig['assets'] ?? [
+                'js' => [$mainFile],
+                'css' => $validatedConfig['css'] ?? []
+            ];
+
             // Move to final location
             $finalPath = $this->pluginsPath . $slug;
             File::move($tempPath, $finalPath);
@@ -80,8 +97,10 @@ class PluginService
                 'plugin_url' => $validatedConfig['plugin_url'] ?? null,
                 'dependencies' => $validatedConfig['dependencies'] ?? null,
                 'plugin_path' => $finalPath,
+                'main_file' => $mainFile, // Tambahkan ini
+                'assets' => $assets, // Update dengan assets dari plugin.json
                 'settings' => $validatedConfig['settings'] ?? null,
-                'type' => $validatedConfig['type'] ?? 'extension', // Tambahkan ini
+                'type' => $validatedConfig['type'] ?? 'extension',
             ]);
 
             return $plugin;
@@ -200,6 +219,73 @@ class PluginService
         if (File::exists($configPath)) {
             return json_decode(File::get($configPath), true);
         }
+        return null;
+    }
+
+    // Tambahkan method baru untuk mendapatkan asset URLs
+    public function getPluginAssetUrls($plugin)
+    {
+        try {
+            $assets = ['js' => [], 'css' => []];
+
+            // Gunakan assets dari database jika ada
+            if ($plugin->assets && is_array($plugin->assets)) {
+                foreach ($plugin->assets as $type => $files) {
+                    if (in_array($type, ['js', 'css']) && is_array($files)) {
+                        foreach ($files as $file) {
+                            if (!empty($file)) {
+                                $assetUrl = $this->getAssetUrl($plugin->slug, $file);
+                                // Hanya tambahkan jika file exists dan URL valid
+                                if ($assetUrl) {
+                                    $assets[$type][] = $assetUrl;
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback ke main_file atau default
+                $mainFile = $plugin->main_file ?: "{$plugin->slug}.umd.js";
+                $assetUrl = $this->getAssetUrl($plugin->slug, $mainFile);
+                if ($assetUrl) {
+                    $assets['js'][] = $assetUrl;
+                }
+            }
+
+            return $assets;
+
+        } catch (\Exception $e) {
+            \Log::error('Error in getPluginAssetUrls: ' . $e->getMessage());
+            return ['js' => [], 'css' => []];
+        }
+    }
+
+    protected function getAssetUrl($slug, $filename)
+    {
+        $possiblePaths = [
+            $filename,
+            "dist/{$filename}",
+            "assets/{$filename}",
+            "js/{$filename}",
+            "css/{$filename}",
+        ];
+
+        foreach ($possiblePaths as $path) {
+            $fullPath = "{$slug}/{$path}";
+
+            // Cek di public/plugins (setelah symlink)
+            $publicPath = "plugins/{$fullPath}";
+            if (file_exists(public_path($publicPath))) {
+                return url($publicPath);
+            }
+
+            // Fallback: langsung serve dari storage via route
+            if (Storage::disk('plugins')->exists($fullPath)) {
+                // Gunakan route /plugins/{slug}/{path} yang sudah kita buat
+                return url("/plugins/{$fullPath}");
+            }
+        }
+
         return null;
     }
 }

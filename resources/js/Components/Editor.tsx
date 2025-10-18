@@ -163,12 +163,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         })
                     ),
                 ],
-                pluginsOpts: {
-                    't-core-blocks': {
-                        // options dari plugin.json
-                    },
-                    // Tambah options untuk plugins lainnya
-                },
+                pluginsOpts: {},
             });
 
             editorRefInternal.current = editor;
@@ -374,7 +369,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setActiveBlocksPanel('basic')}
                         >
-                            Basic Blocks
+
                         </button>
                         <button
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'tailwind' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}

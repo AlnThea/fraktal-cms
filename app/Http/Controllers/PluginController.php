@@ -134,19 +134,35 @@ class PluginController extends Controller
         $activePlugins = Plugin::where('is_active', true)->get();
 
         return $activePlugins->map(function($plugin) {
-            // Generate full URL untuk plugin file
-            $pluginUrl = url("storage/plugins/{$plugin->slug}/dist/t-core-blocks.umd.js");
+            // Gunakan service untuk mendapatkan asset URLs
+            $assets = $this->pluginService->getPluginAssetUrls($plugin);
 
             return [
                 'id' => $plugin->id,
                 'name' => $plugin->name,
                 'slug' => $plugin->slug,
                 'version' => $plugin->version,
+                'type' => $plugin->type,
                 'status' => $plugin->is_active ? 'active' : 'inactive',
-                'assets' => [
-                    'js' => [$pluginUrl]
-                ],
-                'main_file' => $pluginUrl // FULL URL: http://localhost:8000/storage/plugins/t-core-blocks/dist/t-core-blocks.umd.js
+                'assets' => $assets,
+                'main_file' => !empty($assets['js']) ? $assets['js'][0] : null
+            ];
+        });
+    }
+
+    // API tambahan untuk mendapatkan plugin by type
+    public function getPluginsByType($type)
+    {
+        $plugins = Plugin::where('type', $type)->where('is_active', true)->get();
+
+        return $plugins->map(function($plugin) {
+            $assets = $this->pluginService->getPluginAssetUrls($plugin);
+
+            return [
+                'id' => $plugin->id,
+                'name' => $plugin->name,
+                'slug' => $plugin->slug,
+                'assets' => $assets
             ];
         });
     }

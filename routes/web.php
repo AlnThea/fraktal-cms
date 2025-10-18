@@ -15,21 +15,67 @@ Route::get('/', function () {
     ]);
 })->name('homepage');
 
-Route::get('/storage/plugins/{path}', function ($path) {
-    $filePath = storage_path("app/plugins/{$path}");
 
-    if (!file_exists($filePath)) {
-        abort(404);
+// Atau gunakan route yang lebih simple:
+Route::get('/plugins/{slug}/{path}', function ($slug, $path) {
+    try {
+        $fullPath = "{$slug}/{$path}";
+
+        \Log::info("Accessing plugin file", [
+            'slug' => $slug,
+            'path' => $path,
+            'full_path' => $fullPath
+        ]);
+
+        // Gunakan Storage facade dengan disk plugins
+        if (!Storage::disk('plugins')->exists($fullPath)) {
+            \Log::error("Plugin file not found in storage", [
+                'requested' => $fullPath,
+                'storage_path' => Storage::disk('plugins')->path($fullPath)
+            ]);
+            abort(404, "Plugin file not found: {$fullPath}");
+        }
+
+        $filePath = Storage::disk('plugins')->path($fullPath);
+
+        // Determine content type
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $contentTypes = [
+            'js' => 'application/javascript',
+            'css' => 'text/css',
+            'json' => 'application/json',
+            'map' => 'application/json'
+        ];
+
+        $contentType = $contentTypes[$extension] ?? 'text/plain';
+
+        \Log::info("Serving plugin file", [
+            'file_path' => $filePath,
+            'content_type' => $contentType
+        ]);
+
+        return response()->file($filePath, [
+            'Content-Type' => $contentType,
+            'Cache-Control' => 'public, max-age=3600'
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error("Error serving plugin file", [
+            'slug' => $slug,
+            'path' => $path,
+            'error' => $e->getMessage()
+        ]);
+        abort(500, "Error serving plugin file");
     }
-
-    return response()->file($filePath, [
-        'Content-Type' => 'application/javascript'
-    ]);
-})->where('path', '.*');
+})->where('path', '.*')->name('plugins.assets');
 
 // API route untuk GrapeJS blocks - bisa diakses tanpa auth
 Route::get('/api/plugin/grapejs-blocks', [PluginController::class, 'getGrapeJSBlocks'])
     ->name('plugin.grapejs.blocks');
+
+// API route untuk active plugins
+Route::get('/api/active-plugins', [PluginController::class, 'getActivePlugins'])
+    ->name('plugin.active');
 
 Route::middleware([
     'auth:sanctum',
@@ -64,7 +110,4 @@ Route::middleware([
         Route::put('/{plugin}/deactivate', [PluginController::class, 'deactivate'])->name('deactivate');
         Route::delete('/{plugin}', [PluginController::class, 'destroy'])->name('destroy');
     });
-
-
 });
-

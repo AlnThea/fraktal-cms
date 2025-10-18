@@ -10,6 +10,7 @@ class Plugin extends Model
     protected $fillable = [
         'name',
         'slug',
+        'type',
         'version',
         'description',
         'author',
@@ -18,14 +19,20 @@ class Plugin extends Model
         'dependencies',
         'is_active',
         'plugin_path',
+        'assets',
+        'main_file',
         'settings',
-        'type'
     ];
 
     protected $casts = [
         'dependencies' => 'array',
         'settings' => 'array',
+        'assets' => 'array',
         'is_active' => 'boolean',
+    ];
+
+    protected $attributes = [
+        'assets' => '{"js":[],"css":[]}'
     ];
 
     protected static function booted()
@@ -45,5 +52,13 @@ class Plugin extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('type', $type);
+    }
+
+    // Tambahkan accessor untuk main_file dengan fallback
+    protected function mainFile(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ?: $this->slug . '.umd.js',
+        );
     }
 }
