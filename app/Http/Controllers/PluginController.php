@@ -52,7 +52,7 @@ class PluginController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'plugin_file' => 'required|file|mimes:zip|max:10240' // 10MB max
+            'plugin_file' => 'required|file|mimes:zip|max:51200' // 10MB max
         ]);
 
         try {

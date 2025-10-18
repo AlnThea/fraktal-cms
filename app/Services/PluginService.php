@@ -35,7 +35,15 @@ class PluginService
 
     public function uploadPlugin($file)
     {
+        $tempPath = null;
+
         try {
+            \Log::info('🔄 Starting plugin upload', [
+                'filename' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'size_mb' => round($file->getSize() / 1024 / 1024, 2) . ' MB'
+            ]);
+
             // Validate file type
             if ($file->getClientOriginalExtension() !== 'zip') {
                 throw new \Exception('Only ZIP files are allowed');
@@ -44,33 +52,49 @@ class PluginService
             $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $slug = Str::slug($originalName);
 
+            \Log::info('Generated slug', ['slug' => $slug]);
+
             // Check if plugin already exists
             if (Plugin::where('slug', $slug)->exists()) {
-                throw new \Exception('Plugin already exists');
+                $existing = Plugin::where('slug', $slug)->first();
+                \Log::error('Plugin slug conflict', [
+                    'requested_slug' => $slug,
+                    'existing_plugin' => $existing->name
+                ]);
+                throw new \Exception("Plugin with slug '{$slug}' already exists");
             }
 
             // Create temporary extraction path
             $tempPath = $this->pluginsPath . 'temp_' . $slug . '_' . time();
+            \Log::info('Creating temp path', ['temp_path' => $tempPath]);
+
             File::ensureDirectoryExists($tempPath);
 
             // Extract ZIP
+            \Log::info('Extracting ZIP file');
             $zip = new ZipArchive;
             if ($zip->open($file->getRealPath()) === TRUE) {
                 $zip->extractTo($tempPath);
                 $zip->close();
+                \Log::info('ZIP extraction successful');
             } else {
                 throw new \Exception('Failed to extract ZIP file');
             }
 
             // Look for plugin.json configuration
+            \Log::info('Looking for plugin.json');
             $pluginConfig = $this->findPluginConfig($tempPath);
             if (!$pluginConfig) {
+                \Log::error('plugin.json not found in extracted files');
                 File::deleteDirectory($tempPath);
                 throw new \Exception('plugin.json not found');
             }
 
+            \Log::info('plugin.json found', ['config' => $pluginConfig]);
+
             // Validate plugin.json structure
             $validatedConfig = $this->validatePluginConfig($pluginConfig);
+            \Log::info('Plugin config validated');
 
             // Tentukan main_file dan assets dari plugin.json
             $mainFile = $validatedConfig['main_file'] ?? $validatedConfig['assets']['js'][0] ?? "{$slug}.umd.js";
@@ -79,14 +103,39 @@ class PluginService
                 'css' => $validatedConfig['css'] ?? []
             ];
 
+            \Log::info('Plugin assets determined', [
+                'main_file' => $mainFile,
+                'assets' => $assets
+            ]);
+
             // Move to final location
             $finalPath = $this->pluginsPath . $slug;
+
+            \Log::info('Moving to final location', [
+                'temp_path' => $tempPath,
+                'final_path' => $finalPath,
+                'temp_exists' => File::exists($tempPath),
+                'final_exists' => File::exists($finalPath)
+            ]);
+
+            if (File::exists($finalPath)) {
+                \Log::error('Final path already exists', ['path' => $finalPath]);
+                throw new \Exception("Plugin directory already exists: {$slug}");
+            }
+
             File::move($tempPath, $finalPath);
+            \Log::info('Move completed successfully');
 
             // Copy public assets if exists
             $this->handlePublicAssets($finalPath, $slug);
 
             // Create plugin record
+            \Log::info('Creating plugin database record', [
+                'name' => $validatedConfig['name'],
+                'slug' => $slug,
+                'type' => $validatedConfig['type'] ?? 'extension',
+            ]);
+
             $plugin = Plugin::create([
                 'name' => $validatedConfig['name'],
                 'slug' => $slug,
@@ -97,17 +146,28 @@ class PluginService
                 'plugin_url' => $validatedConfig['plugin_url'] ?? null,
                 'dependencies' => $validatedConfig['dependencies'] ?? null,
                 'plugin_path' => $finalPath,
-                'main_file' => $mainFile, // Tambahkan ini
-                'assets' => $assets, // Update dengan assets dari plugin.json
+                'main_file' => $mainFile,
+                'assets' => $assets,
                 'settings' => $validatedConfig['settings'] ?? null,
                 'type' => $validatedConfig['type'] ?? 'extension',
+            ]);
+
+            \Log::info('✅ Plugin created successfully', [
+                'plugin_id' => $plugin->id,
+                'plugin_name' => $plugin->name
             ]);
 
             return $plugin;
 
         } catch (\Exception $e) {
+            \Log::error('❌ Plugin upload failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             // Cleanup on error
             if (isset($tempPath) && File::exists($tempPath)) {
+                \Log::info('Cleaning up temp directory', ['temp_path' => $tempPath]);
                 File::deleteDirectory($tempPath);
             }
             throw $e;
@@ -116,19 +176,49 @@ class PluginService
 
     protected function findPluginConfig($path)
     {
+        // Check root directory first
         $configPath = $path . '/plugin.json';
         if (File::exists($configPath)) {
+            \Log::info('✅ plugin.json found in root');
             return json_decode(File::get($configPath), true);
         }
 
-        // Check in subdirectories
+        // Check common subdirectories
+        $commonDirs = ['dist', 'src', 'assets', 'build', 'public'];
+
+        foreach ($commonDirs as $dir) {
+            $configPath = $path . '/' . $dir . '/plugin.json';
+            if (File::exists($configPath)) {
+                \Log::info("✅ plugin.json found in {$dir}/ directory");
+                return json_decode(File::get($configPath), true);
+            }
+        }
+
+        // Check all subdirectories recursively as fallback
         $directories = File::directories($path);
         foreach ($directories as $directory) {
             $configPath = $directory . '/plugin.json';
             if (File::exists($configPath)) {
+                \Log::info("✅ plugin.json found in subdirectory: " . basename($directory));
                 return json_decode(File::get($configPath), true);
             }
+
+            // Check sub-subdirectories (like dist/assets/etc)
+            $subDirs = File::directories($directory);
+            foreach ($subDirs as $subDir) {
+                $configPath = $subDir . '/plugin.json';
+                if (File::exists($configPath)) {
+                    \Log::info("✅ plugin.json found in subdirectory: " . basename($directory) . '/' . basename($subDir));
+                    return json_decode(File::get($configPath), true);
+                }
+            }
         }
+
+        \Log::error('❌ plugin.json not found in any location');
+        \Log::error('Available files in temp directory:', [
+            'files' => File::files($path),
+            'directories' => File::directories($path)
+        ]);
 
         return null;
     }
