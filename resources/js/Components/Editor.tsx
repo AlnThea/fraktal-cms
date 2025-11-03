@@ -127,7 +127,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 },
                 plugins: [
                     usePlugin(gjsTailwindCSS),
-                    usePlugin(gjsBlockBasic),
+                    // usePlugin(gjsBlockBasic),
                     usePlugin(gjsClick),
                     // Load plugins dari CMS secara dinamis
                     ...activePlugins.map(plugin =>

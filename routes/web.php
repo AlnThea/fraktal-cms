@@ -69,6 +69,7 @@ Route::get('/plugins/{slug}/{path}', function ($slug, $path) {
     }
 })->where('path', '.*')->name('plugins.assets');
 
+
 // API route untuk GrapeJS blocks - bisa diakses tanpa auth
 Route::get('/api/plugin/grapejs-blocks', [PluginController::class, 'getGrapeJSBlocks'])
     ->name('plugin.grapejs.blocks');
