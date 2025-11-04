@@ -172,14 +172,23 @@ class PluginService
      */
     protected function getAssetUrl($slug, $filename)
     {
+        // Jika filename sudah mengandung path (seperti "dist/file.js"),
+        // kita coba langsung dulu tanpa tambahan path
         $possiblePaths = [
-            $filename,
-            "dist/{$filename}",
-            "assets/{$filename}",
-            "js/{$filename}",
-            "css/{$filename}",
-            "build/{$filename}",
+            $filename,  // Coba langsung filename asli (bisa "dist/file.js" atau "file.js")
         ];
+
+        // Jika filename TIDAK mengandung slash, berarti itu bare filename
+        // jadi kita coba tambahkan berbagai folder prefix
+        if (!preg_match('#/#', $filename)) {
+            $possiblePaths = array_merge($possiblePaths, [
+                "dist/{$filename}",
+                "assets/{$filename}",
+                "js/{$filename}",
+                "css/{$filename}",
+                "build/{$filename}",
+            ]);
+        }
 
         foreach ($possiblePaths as $path) {
             $fullPath = "{$slug}/{$path}";
@@ -188,22 +197,32 @@ class PluginService
             $publicPath = "plugins/{$fullPath}";
             $publicFullPath = public_path($publicPath);
 
+            \Log::info("🔍 Checking asset path", [
+                'plugin' => $slug,
+                'path' => $path,
+                'public_path' => $publicFullPath,
+                'file_exists' => file_exists($publicFullPath)
+            ]);
+
             // Check if file exists in public directory (via symlink or manual copy)
             if (file_exists($publicFullPath)) {
+                \Log::info("✅ Asset found in public: {$publicPath}");
                 return url($publicPath);
             }
 
             // Priority 2: Cek di storage via route (fallback)
             if (Storage::disk('plugins')->exists($fullPath)) {
+                \Log::info("✅ Asset found in storage: {$fullPath}");
                 // Use the named route we defined
                 return route('plugins.assets', ['slug' => $slug, 'path' => $path]);
             }
         }
 
-        \Log::warning("Asset not found: {$slug}/{$filename}", [
+        \Log::warning("❌ Asset not found: {$slug}/{$filename}", [
             'possible_paths' => $possiblePaths,
             'public_exists' => file_exists(public_path("plugins/{$slug}")),
-            'storage_exists' => Storage::disk('plugins')->exists($slug)
+            'storage_exists' => Storage::disk('plugins')->exists($slug),
+            'storage_files' => Storage::disk('plugins')->allFiles($slug)
         ]);
 
         return null;
