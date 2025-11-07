@@ -19,9 +19,6 @@ export default defineConfig(() => ({
     resolve: {
         alias: {
             '@': '/resources/js',
-            // Bisa dihapus jika tidak diperlukan, tapi tidak masalah jika dibiarkan
-            // 'react/jsx-runtime.js': 'react/jsx-runtime',
-            // "react/jsx-dev-runtime.js": "react/jsx-dev-runtime",
         },
     },
 
@@ -39,7 +36,6 @@ export default defineConfig(() => ({
             'react-dom',
             'react/jsx-runtime',
             '@inertiajs/server',
-
         ],
     },
 
