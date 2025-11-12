@@ -42,7 +42,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
     const fetchActivePlugins = async (): Promise<Plugin[]> => {
         try {
-            const response = await axios.get('/api/active-plugins'); // Endpoint untuk get plugins aktif
+            const response = await axios.get('/api/active-plugins');
             return response.data;
         } catch (error) {
             console.error('Failed to fetch plugins:', error);
@@ -52,16 +52,14 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
     const loadPlugin = (plugin: Plugin): Promise<any> => {
         return new Promise((resolve, reject) => {
-            // Untuk UMD build, kita harus load sebagai script, bukan ES6 module
             const script = document.createElement('script');
             script.src = plugin.main_file;
 
             script.onload = () => {
                 console.log('✅ UMD Script loaded, checking global exports...');
 
-                // Cek berbagai possible global names dari UMD build
                 const possibleGlobals = [
-                    'TCoreBlocks',      // Dari name: 'TCoreBlocks' di vite config
+                    'TCoreBlocks',
                     'tCoreBlocks',
                     't_core_blocks'
                 ];
@@ -103,7 +101,6 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
         if (!editorInstanceRef.current) return;
 
         const initializeEditor = async () => {
-            // Fetch active plugins dari CMS
             const activePlugins = await fetchActivePlugins();
 
             const editor = grapesjs.init({
@@ -122,14 +119,20 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         { name: 'Mobile', width: '320px', widthMedia: '480px' },
                     ],
                 },
+                // TAMBAHKAN PANELS CONFIGURATION
                 panels: {
-                    defaults: [],
+                    defaults: [
+                        {
+                            id: 'options',
+                            buttons: [
+                                // Buttons akan ditambahkan secara dinamis oleh plugin
+                            ],
+                        },
+                    ],
                 },
                 plugins: [
                     usePlugin(gjsTailwindCSS),
-                    // usePlugin(gjsBlockBasic),
                     usePlugin(gjsClick),
-                    // Load plugins dari CMS secara dinamis
                     ...activePlugins.map(plugin =>
                         usePlugin(async (editor: any, options: any) => {
                             try {
@@ -137,19 +140,15 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                                 const pluginModule = await loadPlugin(plugin);
                                 console.log(`✅ Plugin ${plugin.name} loaded:`, pluginModule);
 
-                                // Handle berbagai format export
                                 if (typeof pluginModule === 'function') {
-                                    // Langsung function
                                     console.log(`🚀 Initializing plugin ${plugin.name} as function...`);
                                     return pluginModule(editor, options);
                                 }
                                 else if (pluginModule && typeof pluginModule.TCoreBlocks === 'function') {
-                                    // Export sebagai TCoreBlocks property
                                     console.log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
                                     return pluginModule.TCoreBlocks(editor, options);
                                 }
                                 else if (pluginModule && typeof pluginModule.default === 'function') {
-                                    // Export sebagai default property
                                     console.log(`🚀 Initializing plugin ${plugin.name} via default export...`);
                                     return pluginModule.default(editor, options);
                                 }
@@ -311,6 +310,12 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 });
             });
 
+            // Debug: Check available panels setelah load
+            editor.on('load', () => {
+                console.log('🎯 Editor loaded - Available panels:', Object.keys(editor.Panels.getPanels()));
+                console.log('🎯 Options panel buttons:', editor.Panels.getPanel('options')?.get('buttons'));
+            });
+
             if (initialData) {
                 editor.loadProjectData(initialData);
             }
@@ -320,7 +325,6 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             };
         };
 
-        // Panggil fungsi async
         initializeEditor();
     }, [editorRef]);
 
@@ -389,7 +393,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setActiveBlocksPanel('basic')}
                         >
-
+                            Basic Blocks
                         </button>
                         <button
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'tailwind' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
@@ -426,17 +430,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                       <div className={'plugin-button'}></div>
-                        {[
-                            { id: 'show-layers', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" /><path d="M16 16v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h2" /></svg>', title: 'Layers' },
-                            { id: 'show-styles', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>', title: 'Styles' },
-                            { id: 'show-traits', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>', title: 'Traits' },
-                        ].map((btn) => (
-                            <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
-                        ))}
-                    </div>
-
-                    <div className="flex items-center space-x-2">
+                        <div className={'plugin-button'}></div>
                         {[
                             { id: 'show-layers', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" /><path d="M16 16v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h2" /></svg>', title: 'Layers' },
                             { id: 'show-styles', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>', title: 'Styles' },
@@ -455,8 +449,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         </div>
                     </div>
 
-
-                    {/* Tombol Toggle Sidebar Kanan (Hanya Muncul di Mobile) */}
+                    {/* Tombol Toggle Sidebar Kanan */}
                     <div className={`absolute top-20 z-40 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
                         <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-l-2 border-b-2 rounded-tl-xl rounded-bl-xl border-teal-300">
                             <button title="Style Manager" className="p-1" onClick={() => setIsSidebarRightOpen(!isSidebarRightOpen)}
@@ -469,7 +462,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         </div>
                     </div>
 
-                    {/* Panel Kanan (Digabung untuk Mobile & Desktop) */}
+                    {/* Panel Kanan */}
                     <aside
                         className={`bg-white text-xs transition-transform duration-300 ease-in-out z-40
                                    flex-shrink-0
