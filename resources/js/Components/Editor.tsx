@@ -383,7 +383,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     isSidebarLeftOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
-                <div className="p-4 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
+                <div className="p-1 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
                     <div className="flex gap-2 mb-2">
                         <button
                             className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
@@ -398,7 +398,9 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                             Tailwind Blocks
                         </button>
                     </div>
-                    <div className="blocks-container flex-grow overflow-y-auto"></div>
+                    <div className={'h-[87vh] pt-1 pb-1 overflow-y-auto'}>
+                        <div className="blocks-container flex-grow "></div>
+                    </div>
                 </div>
             </aside>
 
@@ -418,6 +420,17 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         {[
                             { id: 'set-device-desktop', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10z" /><path d="M7 20h10" /><path d="M9 16v4" /><path d="M15 16v4" /></svg>', title: 'Desktop View' },
                             { id: 'set-device-mobile', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14z" /><path d="M11 4h2" /><path d="M12 17v.01" /></svg>', title: 'Mobile View' },
+                        ].map((btn) => (
+                            <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                        ))}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                       <div className={'plugin-button'}></div>
+                        {[
+                            { id: 'show-layers', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" /><path d="M16 16v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h2" /></svg>', title: 'Layers' },
+                            { id: 'show-styles', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>', title: 'Styles' },
+                            { id: 'show-traits', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>', title: 'Traits' },
                         ].map((btn) => (
                             <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
                         ))}
