@@ -6,6 +6,17 @@ import gjsClick, { getMouseListener, showGrabbedInfo, hideGrabbedInfo, MouseList
 import customAppCss from '../../css/app.css?raw';
 import axios from 'axios';
 
+import {
+    log,
+    warn,
+    err,
+    enable,
+    isEnabled,
+    pluginDebug,
+    editorDebug,
+    apiDebug
+} from '@/Types/debug';
+
 interface Plugin {
     id: number;
     name: string;
@@ -45,7 +56,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             const response = await axios.get('/api/active-plugins');
             return response.data;
         } catch (error) {
-            console.error('Failed to fetch plugins:', error);
+            err('Failed to fetch plugins:', error);
             return [];
         }
     };
@@ -57,10 +68,10 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
             // Simpan state global SEBELUM load script untuk comparison
             const beforeLoadGlobals = Object.keys(window);
-            console.log(`🔄 Loading plugin: ${plugin.name} from ${plugin.main_file}`);
+            log(`🔄 Loading plugin: ${plugin.name} from ${plugin.main_file}`);
 
             script.onload = () => {
-                console.log(`✅ Script loaded for: ${plugin.name}`);
+                log(`✅ Script loaded for: ${plugin.name}`);
 
                 // Type assertion untuk bypass TypeScript checking
                 const win = window as any;
@@ -94,12 +105,12 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
                 // Remove duplicates dan filter yang valid
                 const uniqueNames = [...new Set(generatedNames.filter(name => name && name.length > 0))];
-                console.log(`🔍 Trying generated names for ${plugin.name}:`, uniqueNames);
+                log(`🔍 Trying generated names for ${plugin.name}:`, uniqueNames);
 
                 // 1. PRIORITY: Coba generated names dulu
                 for (const name of uniqueNames) {
                     if (win[name]) {
-                        console.log(`✅ Found export with generated name: ${name}`);
+                        log(`✅ Found export with generated name: ${name}`);
                         const module = win[name];
                         // Cleanup global scope
                         delete win[name];
@@ -113,7 +124,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     key => !beforeLoadGlobals.includes(key)
                 );
 
-                console.log(`🆕 New globals after load:`, newGlobals);
+                log(`🆕 New globals after load:`, newGlobals);
 
                 if (newGlobals.length > 0) {
                     // Prioritize function exports (most likely plugin init)
@@ -122,7 +133,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     );
 
                     if (functionExports.length > 0) {
-                        console.log(`🔄 Using function export: ${functionExports[0]}`);
+                        log(`🔄 Using function export: ${functionExports[0]}`);
                         const module = win[functionExports[0]];
                         delete win[functionExports[0]];
                         return resolve(module);
@@ -138,7 +149,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     );
 
                     if (objectExports.length > 0) {
-                        console.log(`📦 Using object export: ${objectExports[0]}`);
+                        log(`📦 Using object export: ${objectExports[0]}`);
                         const module = win[objectExports[0]];
                         delete win[objectExports[0]];
                         return resolve(module);
@@ -153,7 +164,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     );
 
                     if (nonInternalGlobals.length > 0) {
-                        console.log(`⚠️ Using first non-internal global: ${nonInternalGlobals[0]}`);
+                        log(`⚠️ Using first non-internal global: ${nonInternalGlobals[0]}`);
                         const module = win[nonInternalGlobals[0]];
                         delete win[nonInternalGlobals[0]];
                         return resolve(module);
@@ -169,12 +180,12 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                 );
 
                 if (allFunctionGlobals.length > 0) {
-                    console.log(`🔧 Final fallback to function: ${allFunctionGlobals[0]}`);
+                    log(`🔧 Final fallback to function: ${allFunctionGlobals[0]}`);
                     const module = win[allFunctionGlobals[0]];
                     return resolve(module);
                 }
 
-                console.error('❌ No valid export found. Available globals:', afterLoadGlobals);
+                err('❌ No valid export found. Available globals:', afterLoadGlobals);
                 reject(new Error(
                     `Plugin ${plugin.name} loaded but no identifiable export found. ` +
                     `Tried ${uniqueNames.length} generated names and found ${newGlobals.length} new globals. ` +
@@ -183,7 +194,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             };
 
             script.onerror = () => {
-                console.error(`❌ Failed to load script: ${plugin.main_file}`);
+                err(`❌ Failed to load script: ${plugin.main_file}`);
                 reject(new Error(`Failed to load plugin: ${plugin.name}`));
             };
 
@@ -203,7 +214,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
         const initializeEditor = async () => {
             const activePlugins = await fetchActivePlugins();
-            console.log('📦 Active plugins to load:', activePlugins);
+            log('📦 Active plugins to load:', activePlugins);
 
             const editor = grapesjs.init({
                 container: editorInstanceRef.current,
@@ -235,32 +246,32 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     ...activePlugins.map(plugin =>
                         usePlugin(async (editor: any, options: any) => {
                             try {
-                                console.log(`🔄 Initializing plugin: ${plugin.name}...`);
+                                log(`🔄 Initializing plugin: ${plugin.name}...`);
                                 const pluginModule = await loadPlugin(plugin);
-                                console.log(`✅ Plugin ${plugin.name} loaded successfully:`, pluginModule);
+                                log(`✅ Plugin ${plugin.name} loaded successfully:`, pluginModule);
 
                                 if (typeof pluginModule === 'function') {
-                                    console.log(`🚀 Initializing plugin ${plugin.name} as function...`);
+                                    log(`🚀 Initializing plugin ${plugin.name} as function...`);
                                     return pluginModule(editor, options);
                                 }
                                 else if (pluginModule && typeof pluginModule.default === 'function') {
-                                    console.log(`🚀 Initializing plugin ${plugin.name} via default export...`);
+                                    log(`🚀 Initializing plugin ${plugin.name} via default export...`);
                                     return pluginModule.default(editor, options);
                                 }
                                 else if (pluginModule && typeof pluginModule.init === 'function') {
-                                    console.log(`🚀 Initializing plugin ${plugin.name} via init method...`);
+                                    log(`🚀 Initializing plugin ${plugin.name} via init method...`);
                                     return pluginModule.init(editor, options);
                                 }
                                 else if (pluginModule && typeof pluginModule.TCoreBlocks === 'function') {
-                                    console.log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
+                                    log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
                                     return pluginModule.TCoreBlocks(editor, options);
                                 }
                                 else {
-                                    console.warn(`⚠️ Plugin ${plugin.name} has no initialize function, returning module as-is:`, pluginModule);
+                                    warn(`⚠️ Plugin ${plugin.name} has no initialize function, returning module as-is:`, pluginModule);
                                     return pluginModule;
                                 }
                             } catch (error) {
-                                console.error(`💥 Failed to initialize plugin ${plugin.name}:`, error);
+                                err(`💥 Failed to initialize plugin ${plugin.name}:`, error);
                                 // Jangan reject, biarkan plugin lainnya tetap load
                                 return null;
                             }
@@ -417,8 +428,8 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
             // Debug: Check available panels setelah load
             editor.on('load', () => {
-                console.log('🎯 Editor loaded - Available panels:', Object.keys(editor.Panels.getPanels()));
-                console.log('🎯 Options panel buttons:', editor.Panels.getPanel('options')?.get('buttons'));
+                log('🎯 Editor loaded - Available panels:', Object.keys(editor.Panels.getPanels()));
+                log('🎯 Options panel buttons:', editor.Panels.getPanel('options')?.get('buttons'));
             });
 
             if (initialData) {
