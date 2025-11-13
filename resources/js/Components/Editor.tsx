@@ -55,30 +55,131 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             const script = document.createElement('script');
             script.src = plugin.main_file;
 
-            script.onload = () => {
-                console.log('✅ UMD Script loaded, checking global exports...');
+            // Simpan state global SEBELUM load script untuk comparison
+            const beforeLoadGlobals = Object.keys(window);
+            console.log(`🔄 Loading plugin: ${plugin.name} from ${plugin.main_file}`);
 
-                const possibleGlobals = [
-                    'TCoreBlocks',
-                    'tCoreBlocks',
-                    't_core_blocks'
+            script.onload = () => {
+                console.log(`✅ Script loaded for: ${plugin.name}`);
+
+                // Type assertion untuk bypass TypeScript checking
+                const win = window as any;
+
+                // 🎯 LANGSUNG KE: Generate possible names dari plugin info
+                const cleanName = plugin.name.replace(/[^a-zA-Z0-9]/g, '');
+                const cleanSlug = plugin.slug.replace(/[^a-zA-Z0-9]/g, '');
+
+                const generatedNames = [
+                    // Pattern: Name + Blocks (Alan → AlanBlocks)
+                    cleanName + 'Blocks',
+                    // Pattern: Name + Plugin (Alan → AlanPlugin)
+                    cleanName + 'Plugin',
+                    // Pattern: t + CapitalizedName (Alan → tAlan)
+                    't' + cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+                    // Pattern: Slug + Blocks (alan-blocks → alanblocks)
+                    cleanSlug + 'Blocks',
+                    // Pattern: Slug + Plugin (alan-plugin → alanplugin)
+                    cleanSlug + 'Plugin',
+                    // Pattern: Name saja (Alan)
+                    cleanName,
+                    // Pattern: camelCase version (Alan → alanBlocks)
+                    cleanName.charAt(0).toLowerCase() + cleanName.slice(1) + 'Blocks',
+                    // Pattern: snake_case (Alan → alan_blocks)
+                    cleanName.toLowerCase() + '_blocks',
+                    // Pattern: kebab-case (Alan → alan-blocks) but as camelCase
+                    cleanSlug.split('-').map((word, index) =>
+                        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join('') + 'Blocks',
                 ];
 
-                let pluginModule = null;
-                for (const globalName of possibleGlobals) {
-                    if (window[globalName as any]) {
-                        pluginModule = window[globalName as any];
-                        console.log(`🎯 Found plugin at window.${globalName}`);
-                        break;
+                // Remove duplicates dan filter yang valid
+                const uniqueNames = [...new Set(generatedNames.filter(name => name && name.length > 0))];
+                console.log(`🔍 Trying generated names for ${plugin.name}:`, uniqueNames);
+
+                // 1. PRIORITY: Coba generated names dulu
+                for (const name of uniqueNames) {
+                    if (win[name]) {
+                        console.log(`✅ Found export with generated name: ${name}`);
+                        const module = win[name];
+                        // Cleanup global scope
+                        delete win[name];
+                        return resolve(module);
                     }
                 }
 
-                if (pluginModule) {
-                    resolve(pluginModule);
-                } else {
-                    console.error('❌ No global export found. Available globals:', Object.keys(window).filter(k => k.includes('Core') || k.includes('Block')));
-                    reject(new Error(`Plugin ${plugin.name} loaded but no global export found`));
+                // 2. FALLBACK: Dynamic detection - cari new globals
+                const afterLoadGlobals = Object.keys(win);
+                const newGlobals = afterLoadGlobals.filter(
+                    key => !beforeLoadGlobals.includes(key)
+                );
+
+                console.log(`🆕 New globals after load:`, newGlobals);
+
+                if (newGlobals.length > 0) {
+                    // Prioritize function exports (most likely plugin init)
+                    const functionExports = newGlobals.filter(
+                        key => typeof win[key] === 'function'
+                    );
+
+                    if (functionExports.length > 0) {
+                        console.log(`🔄 Using function export: ${functionExports[0]}`);
+                        const module = win[functionExports[0]];
+                        delete win[functionExports[0]];
+                        return resolve(module);
+                    }
+
+                    // Coba object exports
+                    const objectExports = newGlobals.filter(
+                        key => typeof win[key] === 'object' &&
+                            win[key] !== null &&
+                            !Array.isArray(win[key]) &&
+                            // Exclude common browser objects
+                            !['location', 'document', 'navigator', 'history'].includes(key)
+                    );
+
+                    if (objectExports.length > 0) {
+                        console.log(`📦 Using object export: ${objectExports[0]}`);
+                        const module = win[objectExports[0]];
+                        delete win[objectExports[0]];
+                        return resolve(module);
+                    }
+
+                    // Last resort: ambil new global pertama yang bukan internal
+                    const nonInternalGlobals = newGlobals.filter(key =>
+                        !key.startsWith('_') &&
+                        !key.startsWith('webkit') &&
+                        !key.startsWith('$') &&
+                        key !== 'InstallTrigger' // Firefox internal
+                    );
+
+                    if (nonInternalGlobals.length > 0) {
+                        console.log(`⚠️ Using first non-internal global: ${nonInternalGlobals[0]}`);
+                        const module = win[nonInternalGlobals[0]];
+                        delete win[nonInternalGlobals[0]];
+                        return resolve(module);
+                    }
                 }
+
+                // 3. FINAL FALLBACK: Cari ANY function yang mungkin plugin
+                const allFunctionGlobals = Object.keys(win).filter(
+                    key => typeof win[key] === 'function' &&
+                        !key.startsWith('_') &&
+                        !['webkitStorageInfo', 'chrome', 'runtime', 'browser'].includes(key) &&
+                        !beforeLoadGlobals.includes(key)
+                );
+
+                if (allFunctionGlobals.length > 0) {
+                    console.log(`🔧 Final fallback to function: ${allFunctionGlobals[0]}`);
+                    const module = win[allFunctionGlobals[0]];
+                    return resolve(module);
+                }
+
+                console.error('❌ No valid export found. Available globals:', afterLoadGlobals);
+                reject(new Error(
+                    `Plugin ${plugin.name} loaded but no identifiable export found. ` +
+                    `Tried ${uniqueNames.length} generated names and found ${newGlobals.length} new globals. ` +
+                    `Please ensure the plugin exports a global function or object.`
+                ));
             };
 
             script.onerror = () => {
@@ -102,6 +203,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
 
         const initializeEditor = async () => {
             const activePlugins = await fetchActivePlugins();
+            console.log('📦 Active plugins to load:', activePlugins);
 
             const editor = grapesjs.init({
                 container: editorInstanceRef.current,
@@ -119,14 +221,11 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         { name: 'Mobile', width: '320px', widthMedia: '480px' },
                     ],
                 },
-                // TAMBAHKAN PANELS CONFIGURATION
                 panels: {
                     defaults: [
                         {
                             id: 'options',
-                            buttons: [
-                                // Buttons akan ditambahkan secara dinamis oleh plugin
-                            ],
+                            buttons: [],
                         },
                     ],
                 },
@@ -136,28 +235,34 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                     ...activePlugins.map(plugin =>
                         usePlugin(async (editor: any, options: any) => {
                             try {
-                                console.log(`🔄 Loading plugin: ${plugin.name}...`);
+                                console.log(`🔄 Initializing plugin: ${plugin.name}...`);
                                 const pluginModule = await loadPlugin(plugin);
-                                console.log(`✅ Plugin ${plugin.name} loaded:`, pluginModule);
+                                console.log(`✅ Plugin ${plugin.name} loaded successfully:`, pluginModule);
 
                                 if (typeof pluginModule === 'function') {
                                     console.log(`🚀 Initializing plugin ${plugin.name} as function...`);
                                     return pluginModule(editor, options);
                                 }
-                                else if (pluginModule && typeof pluginModule.TCoreBlocks === 'function') {
-                                    console.log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
-                                    return pluginModule.TCoreBlocks(editor, options);
-                                }
                                 else if (pluginModule && typeof pluginModule.default === 'function') {
                                     console.log(`🚀 Initializing plugin ${plugin.name} via default export...`);
                                     return pluginModule.default(editor, options);
                                 }
+                                else if (pluginModule && typeof pluginModule.init === 'function') {
+                                    console.log(`🚀 Initializing plugin ${plugin.name} via init method...`);
+                                    return pluginModule.init(editor, options);
+                                }
+                                else if (pluginModule && typeof pluginModule.TCoreBlocks === 'function') {
+                                    console.log(`🚀 Initializing plugin ${plugin.name} via TCoreBlocks property...`);
+                                    return pluginModule.TCoreBlocks(editor, options);
+                                }
                                 else {
-                                    console.warn(`❌ Plugin ${plugin.name} has no initialize function:`, pluginModule);
-                                    return null;
+                                    console.warn(`⚠️ Plugin ${plugin.name} has no initialize function, returning module as-is:`, pluginModule);
+                                    return pluginModule;
                                 }
                             } catch (error) {
                                 console.error(`💥 Failed to initialize plugin ${plugin.name}:`, error);
+                                // Jangan reject, biarkan plugin lainnya tetap load
+                                return null;
                             }
                         })
                     ),
