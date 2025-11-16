@@ -238,6 +238,19 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                             id: 'options',
                             buttons: [],
                         },
+                        {
+                            id: 'basic-actions',
+                            el: '.view-plugin-panels',
+                            buttons: [
+                                {
+                                    id: 'visibility',
+                                    active: true, // active by default
+                                    className: 'btn-toggle-borders',
+                                    label: '<u>B</u>',
+                                    command: 'sw-visibility', // Built-in command
+                                },
+                            ],
+                        }
                     ],
                 },
                 plugins: [
@@ -247,6 +260,22 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         usePlugin(async (editor: any, options: any) => {
                             try {
                                 log(`🔄 Initializing plugin: ${plugin.name}...`);
+
+                                // ✅ GUNAKAN EVENT LISTENER YANG BENAR - TIDAK ADA isLoaded()
+                                await new Promise((resolve) => {
+                                    // Cek jika editor sudah loaded
+                                    if (editor.getWrapper()) {
+                                        resolve(true);
+                                    } else {
+                                        // Tunggu event 'load' atau 'editor:ready'
+                                        editor.once('load', resolve);
+                                        editor.once('editor:ready', resolve); // Fallback event
+                                    }
+                                });
+
+                                // ✅ TAMBAH EXTRA DELAY UNTUK DOM STABILIZATION
+                                await new Promise(resolve => setTimeout(resolve, 500));
+
                                 const pluginModule = await loadPlugin(plugin);
                                 log(`✅ Plugin ${plugin.name} loaded successfully:`, pluginModule);
 
@@ -543,6 +572,10 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                         ].map((btn) => (
                             <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
                         ))}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <div className={'view-plugin-panels'}></div>
                     </div>
 
                     <div className="flex items-center space-x-2">
