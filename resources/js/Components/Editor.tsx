@@ -4,6 +4,7 @@ import gjsBlockBasic from 'grapesjs-blocks-basic';
 import gjsTailwindCSS from 'grapesjs-tailwindcss-plugin';
 import gjsClick, { getMouseListener, showGrabbedInfo, hideGrabbedInfo, MouseListener } from 'grapesjs-click';
 import customAppCss from '../../css/app.css?raw';
+import codeEditorPlugin from 'grapesjs-component-code-editor';
 import axios from 'axios';
 
 import {
@@ -249,11 +250,31 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                                     label: '<u>B</u>',
                                     command: 'sw-visibility', // Built-in command
                                 },
+                                {
+                                    attributes: { title: 'Open Code' },
+                                    className: 'fa fa-code',
+                                    command: 'open-code',
+                                    id: 'open-code'
+                                }
                             ],
                         }
                     ],
                 },
                 plugins: [
+                    usePlugin(codeEditorPlugin, {
+                        // Konfigurasi options
+                        panelId: 'code-editor-panel',
+                        appendTo: '.panel__right',
+                        openState: { pn: '35%', cv: '65%' },
+                        closedState: { pn: '15%', cv: '85%' },
+                        codeViewOptions: {},
+                        preserveWidth: true,
+                        clearData: false,
+                        cleanCssBtn: true,
+                        htmlBtnText: 'Apply',
+                        cssBtnText: 'Apply',
+                        cleanCssBtnText: 'Delete'
+                    }),
                     usePlugin(gjsTailwindCSS),
                     usePlugin(gjsClick),
                     ...activePlugins.map(plugin =>
@@ -369,6 +390,11 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             });
 
             // --- COMMANDS ---
+            editor.Commands.add('toggle-code-editor', {
+                run(editor) {
+                    editor.runCommand('open-code');
+                }
+            });
             editor.Commands.add('export-template', {
                 run(editor) {
                     const html = editor.getHtml();
@@ -459,6 +485,13 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
             editor.on('load', () => {
                 log('🎯 Editor loaded - Available panels:', Object.keys(editor.Panels.getPanels()));
                 log('🎯 Options panel buttons:', editor.Panels.getPanel('options')?.get('buttons'));
+                // ✅ Debug untuk memastikan code editor plugin terload
+                const codeEditorCmd = editor.Commands.get('open-code');
+                if (codeEditorCmd) {
+                    log('✅ Code Editor plugin successfully loaded');
+                } else {
+                    warn('❌ Code Editor plugin not loaded properly');
+                }
             });
 
             if (initialData) {
@@ -619,7 +652,7 @@ const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
                                    absolute top-0 right-0 h-full w-72
                                    ${isSidebarRightOpen ? 'translate-x-0' : 'translate-x-full'}`}
                     >
-                        <div className="panel__right h-full p-4 flex flex-col space-y-2 overflow-y-auto">
+                        <div className="panel__right h-full p-4 w-full flex flex-col space-y-2 overflow-y-auto">
                             <div className="layers-container" style={{ display: 'none' }}></div>
                             <div className="styles-container" style={{ display: 'none' }}></div>
                             <div className="traits-container" style={{ display: 'none' }}></div>
