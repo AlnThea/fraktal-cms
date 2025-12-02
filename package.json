@@ -52,6 +52,7 @@
         "grapesjs-parser-postcss": "^1.0.3",
         "grapesjs-plugin-export": "^1.0.12",
         "grapesjs-plugin-forms": "^2.0.6",
+        "grapesjs-plugin-toolbox": "^1.0.15",
         "grapesjs-preset-newsletter": "^1.0.2",
         "grapesjs-preset-webpage": "^1.0.3",
         "grapesjs-rulers": "^1.0.8",

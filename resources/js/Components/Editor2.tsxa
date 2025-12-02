@@ -1,0 +1,1624 @@
+import React, { useEffect, useRef, useState } from 'react';
+import grapesjs, { usePlugin, Block, Component, Editor as GjsEditor } from 'grapesjs';
+import gjsBlockBasic from 'grapesjs-blocks-basic';
+import gjsTailwindCSS from 'grapesjs-tailwindcss-plugin';
+import gjsClick, { getMouseListener, showGrabbedInfo, hideGrabbedInfo, MouseListener } from 'grapesjs-click';
+import '../../css/app.css?raw';
+import codeEditorPlugin from 'grapesjs-component-code-editor';
+import RulersPlugin from 'grapesjs-rulers';
+import ToolboxPlugin from 'grapesjs-plugin-toolbox';
+import 'grapesjs-rulers/dist/grapesjs-rulers.min.css';
+import 'grapesjs-plugin-toolbox/dist/grapesjs-plugin-toolbox.min.css';
+import axios from 'axios';
+
+import {
+    log,
+    warn,
+    err,
+    enable,
+    isEnabled,
+    pluginDebug,
+    editorDebug,
+    apiDebug
+} from '@/Types/debug';
+
+interface Plugin {
+    id: number;
+    name: string;
+    slug: string;
+    version: string;
+    status: string;
+    assets: {
+        js: string[];
+    };
+    main_file: string;
+}
+
+interface EditorProps {
+    onSave?: (data: string) => void;
+    initialData?: any;
+    editorRef?: React.MutableRefObject<any>;
+}
+
+const grabIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path fill="currentColor" d="M188 76a31.85 31.85 0 0 0-11.21 2A32 32 0 0 0 128 67a32 32 0 0 0-52 25v16h-8a32 32 0 0 0-32 32v12a92 92 0 0 0 184 0v-44a32 32 0 0 0-32-32m8 76a68 68 0 0 1-136 0v-12a8 8 0 0 1 8-8h8v20a12 12 0 0 0 24 0V92a8 8 0 0 1 16 0v28a12 12 0 0 0 24 0V92a8 8 0 0 1 16 0v28a12 12 0 0 0 24 0v-12a8 8 0 0 1 16 0Z"/></svg>';
+
+const capitalizeValue = (value?: string) => {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value.charAt(0).toUpperCase() + value.replace(/[_-]+/, ' ').slice(1);
+};
+
+const Editor: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) => {
+    const editorInstanceRef = useRef<any>(null);
+    const editorRefInternal = useRef<any>(null);
+    const [isSidebarLeftOpen, setIsSidebarLeftOpen] = useState(false);
+    const [isSidebarRightOpen, setIsSidebarRightOpen] = useState(false);
+    const [activeBlocksPanel, setActiveBlocksPanel] = useState('basic');
+
+    const fetchActivePlugins = async (): Promise<Plugin[]> => {
+        try {
+            const response = await axios.get('/api/active-plugins');
+            return response.data;
+        } catch (error) {
+            err('Failed to fetch plugins:', error);
+            return [];
+        }
+    };
+
+    const loadPlugin = (plugin: Plugin): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = plugin.main_file;
+
+            const beforeLoadGlobals = Object.keys(window);
+            log(`🔄 Loading plugin: ${plugin.name} from ${plugin.main_file}`);
+
+            script.onload = () => {
+                log(`✅ Script loaded for: ${plugin.name}`);
+                const win = window as any;
+
+                const cleanName = plugin.name.replace(/[^a-zA-Z0-9]/g, '');
+                const cleanSlug = plugin.slug.replace(/[^a-zA-Z0-9]/g, '');
+
+                const generatedNames = [
+                    cleanName + 'Blocks',
+                    cleanName + 'Plugin',
+                    't' + cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+                    cleanSlug + 'Blocks',
+                    cleanSlug + 'Plugin',
+                    cleanName,
+                    cleanName.charAt(0).toLowerCase() + cleanName.slice(1) + 'Blocks',
+                    cleanName.toLowerCase() + '_blocks',
+                    cleanSlug.split('-').map((word, index) =>
+                        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join('') + 'Blocks',
+                ];
+
+                const uniqueNames = [...new Set(generatedNames.filter(name => name && name.length > 0))];
+                log(`🔍 Trying generated names for ${plugin.name}:`, uniqueNames);
+
+                for (const name of uniqueNames) {
+                    if (win[name]) {
+                        log(`✅ Found export with generated name: ${name}`);
+                        const module = win[name];
+                        delete win[name];
+                        return resolve(module);
+                    }
+                }
+
+                const afterLoadGlobals = Object.keys(win);
+                const newGlobals = afterLoadGlobals.filter(
+                    key => !beforeLoadGlobals.includes(key)
+                );
+
+                log(`🆕 New globals after load:`, newGlobals);
+
+                if (newGlobals.length > 0) {
+                    const functionExports = newGlobals.filter(
+                        key => typeof win[key] === 'function'
+                    );
+
+                    if (functionExports.length > 0) {
+                        log(`🔄 Using function export: ${functionExports[0]}`);
+                        const module = win[functionExports[0]];
+                        delete win[functionExports[0]];
+                        return resolve(module);
+                    }
+
+                    const objectExports = newGlobals.filter(
+                        key => typeof win[key] === 'object' &&
+                            win[key] !== null &&
+                            !Array.isArray(win[key]) &&
+                            !['location', 'document', 'navigator', 'history'].includes(key)
+                    );
+
+                    if (objectExports.length > 0) {
+                        log(`📦 Using object export: ${objectExports[0]}`);
+                        const module = win[objectExports[0]];
+                        delete win[objectExports[0]];
+                        return resolve(module);
+                    }
+
+                    const nonInternalGlobals = newGlobals.filter(key =>
+                        !key.startsWith('_') &&
+                        !key.startsWith('webkit') &&
+                        !key.startsWith('$') &&
+                        key !== 'InstallTrigger'
+                    );
+
+                    if (nonInternalGlobals.length > 0) {
+                        log(`⚠️ Using first non-internal global: ${nonInternalGlobals[0]}`);
+                        const module = win[nonInternalGlobals[0]];
+                        delete win[nonInternalGlobals[0]];
+                        return resolve(module);
+                    }
+                }
+
+                const allFunctionGlobals = Object.keys(win).filter(
+                    key => typeof win[key] === 'function' &&
+                        !key.startsWith('_') &&
+                        !['webkitStorageInfo', 'chrome', 'runtime', 'browser'].includes(key) &&
+                        !beforeLoadGlobals.includes(key)
+                );
+
+                if (allFunctionGlobals.length > 0) {
+                    log(`🔧 Final fallback to function: ${allFunctionGlobals[0]}`);
+                    const module = win[allFunctionGlobals[0]];
+                    return resolve(module);
+                }
+
+                err('❌ No valid export found. Available globals:', afterLoadGlobals);
+                reject(new Error(
+                    `Plugin ${plugin.name} loaded but no identifiable export found. ` +
+                    `Tried ${uniqueNames.length} generated names and found ${newGlobals.length} new globals. ` +
+                    `Please ensure the plugin exports a global function or object.`
+                ));
+            };
+
+            script.onerror = () => {
+                err(`❌ Failed to load script: ${plugin.main_file}`);
+                reject(new Error(`Failed to load plugin: ${plugin.name}`));
+            };
+
+            document.head.appendChild(script);
+        });
+    };
+
+    useEffect(() => {
+        if (window.innerWidth >= 1024) {
+            setIsSidebarLeftOpen(true);
+            setIsSidebarRightOpen(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!editorInstanceRef.current) return;
+
+        const initializeEditor = async () => {
+            const activePlugins = await fetchActivePlugins();
+            log('📦 Active plugins to load:', activePlugins);
+
+            const editor = grapesjs.init({
+                container: editorInstanceRef.current,
+                height: '88vh',
+                width: '100%',
+                storageManager: { type: 'none' },
+                layerManager: { appendTo: '.layers-container' },
+                selectorManager: { appendTo: '.styles-container' },
+                styleManager: { appendTo: '.styles-container' },
+                traitManager: { appendTo: '.traits-container' },
+                blockManager: { appendTo: '.blocks-container' },
+                deviceManager: {
+                    devices: [
+                        { name: 'Desktop', width: '' },
+                        { name: 'Mobile', width: '320px', widthMedia: '480px' },
+                    ],
+                },
+                panels: {
+                    defaults: [
+                        {
+                            id: 'options',
+                            buttons: [],
+                        },
+                        {
+                            id: 'basic-actions',
+                            el: '.view-plugin-panels',
+                            buttons: [
+                                {
+                                    id: 'visibility',
+                                    active: true,
+                                    className: 'btn-toggle-borders',
+                                    label: '<u>B</u>',
+                                    command: 'sw-visibility',
+                                },
+                                {
+                                    attributes: { title: 'Open Code' },
+                                    className: 'fa fa-code',
+                                    command: 'open-code',
+                                    id: 'open-code'
+                                },
+                                {
+                                    attributes: { title: 'Toggle Rulers' },
+                                    context: 'toggle-rulers',
+                                    label: `<svg width="18" viewBox="0 0 16 16"><path d="M0 8a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 0 1H.5A.5.5 0 0 1 0 8z"/><path d="M4 3h8a1 1 0 0 1 1 1v2.5h1V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2.5h1V4a1 1 0 0 1 1-1zM3 9.5H2V12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9.5h-1V12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/></svg>`,
+                                    command: 'ruler-visibility',
+                                    id: 'ruler-visibility'
+                                }
+                            ],
+                        }
+                    ],
+                },
+                plugins: [
+                    usePlugin(gjsTailwindCSS),
+                    usePlugin(gjsClick),
+                    usePlugin(codeEditorPlugin, {
+                        panelId: 'code-editor-panel',
+                        appendTo: '.panel__right',
+                        openState: { pn: '35%', cv: '65%' },
+                        closedState: { pn: '15%', cv: '85%' },
+                        codeViewOptions: {},
+                        preserveWidth: true,
+                        clearData: false,
+                        cleanCssBtn: true,
+                        htmlBtnText: 'Apply',
+                        cssBtnText: 'Apply',
+                        cleanCssBtnText: 'Delete'
+                    }),
+                    usePlugin(RulersPlugin),
+                    ...activePlugins.map(plugin =>
+                        usePlugin(async (editor: any, options: any) => {
+                            try {
+                                log(`🔄 Initializing plugin: ${plugin.name}...`);
+                                if (!editor.getWrapper()) {
+                                    await new Promise((resolve) => {
+                                        editor.once('load', resolve);
+                                        editor.once('editor:ready', resolve);
+                                    });
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                const pluginModule = await loadPlugin(plugin);
+                                log(`✅ Plugin ${plugin.name} loaded successfully:`, pluginModule);
+                                if (typeof pluginModule === 'function') {
+                                    return pluginModule(editor, options);
+                                }
+                                else if (pluginModule && typeof pluginModule.default === 'function') {
+                                    return pluginModule.default(editor, options);
+                                }
+                                else if (pluginModule && typeof pluginModule.init === 'function') {
+                                    return pluginModule.init(editor, options);
+                                }
+                                else {
+                                    warn(`⚠️ Plugin ${plugin.name} has no initialize function`);
+                                    return pluginModule;
+                                }
+                            } catch (error) {
+                                err(`💥 Failed to initialize plugin ${plugin.name}:`, error);
+                                return null;
+                            }
+                        })
+                    ),
+                    usePlugin(async (editor: any) => {
+                        try {
+                            const ToolboxPlugin = (await import('grapesjs-plugin-toolbox')).default;
+                            return ToolboxPlugin(editor, {});
+                        } catch (error) {
+                            err('💥 Failed to load ToolboxPlugin:', error);
+                            return null;
+                        }
+                    }),
+                ],
+                pluginsOpts: {},
+            });
+
+            editorRefInternal.current = editor;
+            if (editorRef) editorRef.current = editor;
+
+            // --- GRAPESJS-CLICK LOGIC ---
+            const grabbedInfoEl = document.getElementById('grabbed-info');
+            if (grabbedInfoEl) {
+                const mouseListener = getMouseListener(editor, grabbedInfoEl);
+
+                const resetGrabbedInfo = (element: HTMLElement) => {
+                    element.textContent = '';
+                    element.style.top = '0';
+                    element.style.left = '0';
+                };
+
+                editor.on('click:grab-block', (block: Block) => {
+                    const label = block.getLabel();
+                    const category = block.getCategoryLabel();
+                    grabbedInfoEl.textContent = `${label} (${category})`;
+                    showGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+
+                editor.on('click:drop-block', () => {
+                    resetGrabbedInfo(grabbedInfoEl);
+                    hideGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+
+                editor.on('click:grab-component', (component: Component) => {
+                    const { name, type } = component.props();
+                    const label = name || capitalizeValue(type);
+                    grabbedInfoEl.textContent = label;
+                    showGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+
+                editor.on('click:drop-component', () => {
+                    resetGrabbedInfo(grabbedInfoEl);
+                    hideGrabbedInfo(grabbedInfoEl, mouseListener);
+                });
+            }
+
+            editor.on('component:selected', (selectedComponent: Component) => {
+                const { type: componentType } = selectedComponent.props();
+                const toolbar = selectedComponent.get('toolbar') || [];
+                const isWrapperComponent = componentType === 'wrapper';
+                const hasGrabbedAction = toolbar.some(({ command }) => command === 'click:grab-component');
+
+                if (isWrapperComponent || hasGrabbedAction) {
+                    return;
+                }
+
+                toolbar.unshift({
+                    label: grabIcon,
+                    command: 'click:grab-component',
+                    attributes: { title: 'Grab this component' },
+                });
+
+                selectedComponent.set('toolbar', toolbar);
+            });
+
+            // --- COMMANDS ---
+            editor.Commands.add('core:undo', {
+                run(editor) {
+                    editor.UndoManager.undo();
+                }
+            });
+
+            editor.Commands.add('core:redo', {
+                run(editor) {
+                    editor.UndoManager.redo();
+                }
+            });
+
+            // FULLSCREEN COMMAND - COMPLETE VERSION
+            editor.Commands.add('core:fullscreen', {
+                run(editor) {
+                    const canvasEl = editor.Canvas.getFrameEl();
+                    const editorContainer = editor.getContainer();
+
+                    if (!canvasEl || !editorContainer) {
+                        console.warn('Canvas or editor container not found');
+                        return;
+                    }
+
+                    const isFullscreen = canvasEl.classList.contains('fullscreen-mode');
+                    const existingToolbar = document.querySelector('.fullscreen-mini-toolbar');
+                    const existingBlocksModal = document.querySelector('.fullscreen-blocks-modal');
+                    const existingPropertiesModal = document.querySelector('.fullscreen-properties-modal');
+                    const existingCodeModal = document.querySelector('.fullscreen-code-modal');
+
+                    if (!isFullscreen) {
+                        // Enter fullscreen
+                        canvasEl.classList.add('fullscreen-mode');
+                        editorContainer.classList.add('fullscreen-mode');
+                        setIsSidebarLeftOpen(false);
+                        setIsSidebarRightOpen(false);
+
+                        // Hapus element lama jika ada
+                        if (existingToolbar) existingToolbar.remove();
+                        if (existingBlocksModal) existingBlocksModal.remove();
+                        if (existingPropertiesModal) existingPropertiesModal.remove();
+                        if (existingCodeModal) existingCodeModal.remove();
+
+                        // Buat mini toolbar VERTICAL dengan semua tombol
+                        const miniToolbar = document.createElement('div');
+                        miniToolbar.className = 'fullscreen-mini-toolbar';
+                        miniToolbar.innerHTML = `
+                            <!-- Group 1: Blocks & Properties -->
+                            <button class="mini-toolbox-btn" id="toggle-blocks-modal" title="Show Blocks">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5"/>
+                                    <path d="M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5"/>
+                                </svg>
+                            </button>
+                            <button class="mini-toolbox-btn properties-modal-btn" id="toggle-properties-modal" title="Show Properties">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M7 10h10l-5 -5z"/>
+                                    <path d="M7 14h10l-5 5z"/>
+                                </svg>
+                            </button>
+
+                            <!-- Divider -->
+                            <div class="toolbox-divider"></div>
+
+                            <!-- Group 2: Code Editor -->
+                            <button class="mini-toolbox-btn code-modal-btn" id="toggle-code-modal" title="Show Code Editor">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M7 8l-4 4l4 4"/>
+                                    <path d="M17 8l4 4l-4 4"/>
+                                    <path d="M14 4l-4 16"/>
+                                </svg>
+                            </button>
+
+                            <!-- Divider -->
+                            <div class="toolbox-divider"></div>
+
+                            <!-- Group 3: Undo/Redo -->
+                            <button class="mini-toolbox-btn" id="fullscreen-undo-btn" title="Undo (Ctrl+Z)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M9 13l-4 -4l4 -4m-4 4h11a4 4 0 0 1 0 8h-1"/>
+                                </svg>
+                            </button>
+                            <button class="mini-toolbox-btn" id="fullscreen-redo-btn" title="Redo (Ctrl+Y)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M15 13l4 -4l-4 -4m4 4h-11a4 4 0 0 0 0 8h1"/>
+                                </svg>
+                            </button>
+
+                            <!-- Divider -->
+                            <div class="toolbox-divider"></div>
+
+                            <!-- Group 4: Fullscreen Exit -->
+                            <button class="mini-toolbox-btn" id="exit-fullscreen-btn" title="Exit Fullscreen">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                                </svg>
+                            </button>
+                        `;
+
+                        // Buat blocks modal (L-SHAPE LAYOUT)
+                        const blocksModal = document.createElement('div');
+                        blocksModal.className = 'fullscreen-blocks-modal';
+                        blocksModal.innerHTML = `
+                            <div class="blocks-modal-header">
+                                <h3>Blocks Library</h3>
+                                <button id="close-blocks-modal" title="Close Blocks">✕</button>
+                            </div>
+                            <div class="blocks-modal-content"></div>
+                        `;
+
+                        // Buat properties modal (L-SHAPE LAYOUT)
+                        const propertiesModal = document.createElement('div');
+                        propertiesModal.className = 'fullscreen-properties-modal';
+                        propertiesModal.innerHTML = `
+                            <div class="properties-modal-header">
+                                <h3>Properties</h3>
+                                <div class="properties-modal-tabs">
+                                    <button class="properties-modal-tab" data-tab="styles" data-command="show-styles">Styles</button>
+                                    <button class="properties-modal-tab" data-tab="layers" data-command="show-layers">Layers</button>
+                                    <button class="properties-modal-tab" data-tab="traits" data-command="show-traits">Traits</button>
+                                </div>
+                                <button id="close-properties-modal" title="Close Properties">✕</button>
+                            </div>
+                            <div class="properties-modal-content">
+                                <div class="properties-modal-tab-content" id="styles-tab">
+                                    <div class="styles-container-fullscreen"></div>
+                                </div>
+                                <div class="properties-modal-tab-content" id="layers-tab">
+                                    <div class="layers-container-fullscreen"></div>
+                                </div>
+                                <div class="properties-modal-tab-content" id="traits-tab">
+                                    <div class="traits-container-fullscreen"></div>
+                                </div>
+                            </div>
+                        `;
+
+                        // Buat code modal (BOTTOM LAYOUT)
+                        const codeModal = document.createElement('div');
+                        codeModal.className = 'fullscreen-code-modal';
+                        codeModal.innerHTML = `
+                            <div class="code-modal-header">
+                                <h3>Code Editor</h3>
+                                <button id="close-code-modal" title="Close Code Editor">✕</button>
+                            </div>
+                            <div class="code-modal-content">
+                                <div id="code-editor-panel-fullscreen"></div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(miniToolbar);
+                        document.body.appendChild(blocksModal);
+                        document.body.appendChild(propertiesModal);
+                        document.body.appendChild(codeModal);
+
+                        // Function untuk update state undo/redo buttons
+                        const updateUndoRedoButtons = () => {
+                            const undoBtn = document.getElementById('fullscreen-undo-btn') as HTMLButtonElement | null;
+                            const redoBtn = document.getElementById('fullscreen-redo-btn') as HTMLButtonElement | null;
+                            const um = editor.UndoManager;
+
+                            if (undoBtn) {
+                                const hasUndo = um.hasUndo();
+                                undoBtn.disabled = !hasUndo;
+                                undoBtn.title = hasUndo ? 'Undo (Ctrl+Z)' : 'Nothing to undo';
+                            }
+
+                            if (redoBtn) {
+                                const hasRedo = um.hasRedo();
+                                redoBtn.disabled = !hasRedo;
+                                redoBtn.title = hasRedo ? 'Redo (Ctrl+Y)' : 'Nothing to redo';
+                            }
+                        };
+
+                        // Function untuk render blocks ke modal
+                        const renderBlocksToModal = () => {
+                            const blocksContent = blocksModal.querySelector('.blocks-modal-content');
+                            if (!blocksContent) return;
+
+                            blocksContent.innerHTML = '';
+
+                            const blocks = editor.BlockManager.getAll();
+                            const blocksByCategory: { [key: string]: any[] } = {};
+                            blocks.forEach((block: any) => {
+                                const category = block.getCategoryLabel() || 'Basic';
+                                if (!blocksByCategory[category]) {
+                                    blocksByCategory[category] = [];
+                                }
+                                blocksByCategory[category].push(block);
+                            });
+
+                            Object.keys(blocksByCategory).forEach(category => {
+                                const categorySection = document.createElement('div');
+                                categorySection.className = 'blocks-modal-category';
+
+                                const categoryTitle = document.createElement('div');
+                                categoryTitle.className = 'blocks-modal-category-title';
+                                categoryTitle.textContent = category;
+                                categorySection.appendChild(categoryTitle);
+
+                                const categoryBlocks = document.createElement('div');
+                                categoryBlocks.className = 'blocks-modal-category-grid';
+
+                                blocksByCategory[category].forEach((block) => {
+                                    const blockEl = document.createElement('div');
+                                    blockEl.className = 'modal-block-item';
+
+                                    blockEl.innerHTML = `
+                                        <div class="modal-block-media">
+                                            ${block.getMedia() || '<div style="width: 20px; height: 20px; background: #6c757d; border-radius: 3px;"></div>'}
+                                        </div>
+                                        <div class="modal-block-label">
+                                            ${block.getLabel()}
+                                        </div>
+                                    `;
+
+                                    blockEl.addEventListener('mouseenter', () => {
+                                        (blockEl as HTMLElement).style.backgroundColor = '#ecfdf5';
+                                        (blockEl as HTMLElement).style.borderColor = '#a7f3d0';
+                                        (blockEl as HTMLElement).style.transform = 'translateY(-2px)';
+                                        (blockEl as HTMLElement).style.boxShadow = '0 4px 12px rgba(0, 122, 204, 0.15)';
+                                    });
+
+                                    blockEl.addEventListener('mouseleave', () => {
+                                        (blockEl as HTMLElement).style.backgroundColor = '#fff';
+                                        (blockEl as HTMLElement).style.borderColor = '#dee2e6';
+                                        (blockEl as HTMLElement).style.transform = 'translateY(0)';
+                                        (blockEl as HTMLElement).style.boxShadow = 'none';
+                                    });
+
+                                    blockEl.addEventListener('click', () => {
+                                        editor.runCommand('click:grab-block', { id: block.getId() });
+                                        const component = block.getContent();
+                                        editor.getSelected()?.append(component);
+
+                                        blocksModal.classList.remove('modal-visible');
+                                        const toggleBlocksBtn = document.getElementById('toggle-blocks-modal');
+                                        if (toggleBlocksBtn) {
+                                            toggleBlocksBtn.setAttribute('title', 'Show Blocks');
+                                            toggleBlocksBtn.classList.remove('active');
+                                        }
+                                    });
+
+                                    categoryBlocks.appendChild(blockEl);
+                                });
+
+                                categorySection.appendChild(categoryBlocks);
+                                blocksContent.appendChild(categorySection);
+                            });
+                        };
+
+                        // Function untuk REFRESH Layer Manager
+                        const refreshLayerManager = () => {
+                            if (editor.LayerManager && typeof editor.LayerManager.render === 'function') {
+                                const layersContainer = propertiesModal.querySelector('.layers-container-fullscreen') as HTMLElement;
+                                if (layersContainer) {
+                                    layersContainer.innerHTML = '';
+                                    const layerManager = editor.LayerManager;
+                                    if (layerManager.__rendered) {
+                                        layerManager.render();
+                                    } else {
+                                        const layersEl = layerManager.render();
+                                        if (layersEl) {
+                                            layersContainer.appendChild(layersEl);
+                                        }
+                                    }
+                                }
+                            }
+                        };
+
+                        // Function untuk MOVE panels ke properties modal
+                        const movePanelsToPropertiesModal = () => {
+                            const originalStyles = document.querySelector('.styles-container') as HTMLElement;
+                            const originalLayers = document.querySelector('.layers-container') as HTMLElement;
+                            const originalTraits = document.querySelector('.traits-container') as HTMLElement;
+
+                            const stylesContainer = propertiesModal.querySelector('.styles-container-fullscreen') as HTMLElement;
+                            const layersContainer = propertiesModal.querySelector('.layers-container-fullscreen') as HTMLElement;
+                            const traitsContainer = propertiesModal.querySelector('.traits-container-fullscreen') as HTMLElement;
+
+                            if (originalStyles && stylesContainer) {
+                                stylesContainer.innerHTML = originalStyles.innerHTML;
+                                originalStyles.style.display = 'none';
+                            }
+
+                            if (originalLayers && layersContainer) {
+                                refreshLayerManager();
+                                originalLayers.style.display = 'none';
+                            }
+
+                            if (originalTraits && traitsContainer) {
+                                traitsContainer.innerHTML = originalTraits.innerHTML;
+                                originalTraits.style.display = 'none';
+                            }
+
+                            setTimeout(() => {
+                                window.dispatchEvent(new Event('resize'));
+                            }, 100);
+                        };
+
+
+                        // Function untuk REINITIALIZE code editor plugin di modal - TAB LAYOUT
+                        const initializeCodeEditorInModal = async () => {
+                            const codeEditorContainer = codeModal.querySelector('#code-editor-panel-fullscreen') as HTMLElement;
+                            if (!codeEditorContainer) return;
+
+                            codeEditorContainer.innerHTML = '';
+
+                            try {
+                                // Buat code editor dengan tab layout
+                                codeEditorContainer.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+                <!-- Tab Header -->
+                <div style="display: flex; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                    <button class="code-tab-btn active" data-tab="html" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid #10b981; font-weight: 500; color: #10b981;">
+                        HTML
+                    </button>
+                    <button class="code-tab-btn" data-tab="css" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; color: #6b7280;">
+                        CSS
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 15px; overflow: hidden;">
+                    <!-- HTML Tab Content -->
+                    <div class="tab-content active" id="html-tab-content" style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="font-weight: bold; margin-bottom: 8px;">HTML Code:</label>
+                        <textarea
+                            id="html-code-fullscreen"
+                            style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
+                            spellcheck="false"
+                            placeholder="Enter your HTML code here..."
+                        >${editor.getHtml()}</textarea>
+                    </div>
+
+                    <!-- CSS Tab Content -->
+                    <div class="tab-content" id="css-tab-content" style="flex: 1; display: none; flex-direction: column;">
+                        <label style="font-weight: bold; margin-bottom: 8px;">CSS Code:</label>
+                        <textarea
+                            id="css-code-fullscreen"
+                            style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
+                            spellcheck="false"
+                            placeholder="Enter your CSS code here..."
+                        >${editor.getCss()}</textarea>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="padding: 15px 20px; border-top: 1px solid #dee2e6; background: #f8f9fa; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="apply-code-fullscreen" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
+                        Apply Changes
+                    </button>
+                    <button id="close-code-fullscreen" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+                                // Add tab functionality
+                                const tabButtons = codeEditorContainer.querySelectorAll('.code-tab-btn');
+                                const tabContents = codeEditorContainer.querySelectorAll('.tab-content');
+
+                                tabButtons.forEach(button => {
+                                    button.addEventListener('click', function() {
+                                        const tabName = this.getAttribute('data-tab');
+
+                                        // Update active tab button
+                                        tabButtons.forEach(btn => {
+                                            btn.style.borderBottomColor = 'transparent';
+                                            btn.style.color = '#6b7280';
+                                            btn.classList.remove('active');
+                                        });
+                                        this.style.borderBottomColor = '#10b981';
+                                        this.style.color = '#10b981';
+                                        this.classList.add('active');
+
+                                        // Show/hide tab content
+                                        tabContents.forEach(content => {
+                                            content.style.display = 'none';
+                                            content.classList.remove('active');
+                                        });
+
+                                        const activeContent = codeEditorContainer.querySelector(`#${tabName}-tab-content`) as HTMLElement;
+                                        if (activeContent) {
+                                            activeContent.style.display = 'flex';
+                                            activeContent.classList.add('active');
+                                        }
+                                    });
+                                });
+
+                                // Add hover effects for buttons
+                                const applyBtn = document.getElementById('apply-code-fullscreen');
+                                const closeBtn = document.getElementById('close-code-fullscreen');
+
+                                if (applyBtn) {
+                                    applyBtn.addEventListener('mouseenter', () => {
+                                        (applyBtn as HTMLElement).style.backgroundColor = '#059669';
+                                        (applyBtn as HTMLElement).style.transform = 'translateY(-1px)';
+                                    });
+                                    applyBtn.addEventListener('mouseleave', () => {
+                                        (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
+                                        (applyBtn as HTMLElement).style.transform = 'translateY(0)';
+                                    });
+
+                                    applyBtn.addEventListener('click', () => {
+                                        try {
+                                            const html = (document.getElementById('html-code-fullscreen') as HTMLTextAreaElement)?.value || '';
+                                            const css = (document.getElementById('css-code-fullscreen') as HTMLTextAreaElement)?.value || '';
+
+                                            // Gunakan metode yang aman
+                                            if (html.trim()) {
+                                                editor.setComponents(html.trim());
+                                            }
+                                            if (css.trim()) {
+                                                editor.setStyle(css.trim());
+                                            }
+
+                                            // Show success feedback
+                                            (applyBtn as HTMLElement).textContent = 'Applied!';
+                                            (applyBtn as HTMLElement).style.backgroundColor = '#059669';
+
+                                            setTimeout(() => {
+                                                (applyBtn as HTMLElement).textContent = 'Apply Changes';
+                                                (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
+
+                                                // Close modal after successful apply
+                                                setTimeout(() => {
+                                                    codeModal.classList.remove('modal-visible');
+                                                    const toggleBtn = document.getElementById('toggle-code-modal');
+                                                    if (toggleBtn) toggleBtn.classList.remove('active');
+                                                }, 500);
+                                            }, 1000);
+
+                                        } catch (error) {
+                                            console.error('Error applying code:', error);
+                                            (applyBtn as HTMLElement).textContent = 'Error!';
+                                            (applyBtn as HTMLElement).style.backgroundColor = '#dc2626';
+
+                                            setTimeout(() => {
+                                                (applyBtn as HTMLElement).textContent = 'Apply Changes';
+                                                (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
+                                            }, 2000);
+
+                                            alert('Error applying code. Please check your HTML/CSS syntax.');
+                                        }
+                                    });
+                                }
+
+                                if (closeBtn) {
+                                    closeBtn.addEventListener('mouseenter', () => {
+                                        (closeBtn as HTMLElement).style.backgroundColor = '#4b5563';
+                                        (closeBtn as HTMLElement).style.transform = 'translateY(-1px)';
+                                    });
+                                    closeBtn.addEventListener('mouseleave', () => {
+                                        (closeBtn as HTMLElement).style.backgroundColor = '#6b7280';
+                                        (closeBtn as HTMLElement).style.transform = 'translateY(0)';
+                                    });
+
+                                    closeBtn.addEventListener('click', () => {
+                                        codeModal.classList.remove('modal-visible');
+                                        const toggleBtn = document.getElementById('toggle-code-modal');
+                                        if (toggleBtn) toggleBtn.classList.remove('active');
+                                    });
+                                }
+
+                                // Add keyboard shortcuts
+                                const handleCodeEditorKeydown = (e: KeyboardEvent) => {
+                                    if (e.ctrlKey || e.metaKey) {
+                                        if (e.key === 's') {
+                                            e.preventDefault();
+                                            (applyBtn as HTMLButtonElement)?.click();
+                                        }
+                                    }
+                                };
+
+                                codeEditorContainer.addEventListener('keydown', handleCodeEditorKeydown);
+
+                                // Save event listener for cleanup
+                                (editor as any).__codeEditorKeyHandler = handleCodeEditorKeydown;
+
+                            } catch (error) {
+                                console.error('Failed to initialize code editor in modal:', error);
+
+                                // Fallback simple version
+                                codeEditorContainer.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column; padding: 20px; gap: 15px;">
+                <div style="display: flex; gap: 10px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                    <button onclick="showTab('html')" style="padding: 8px 16px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px;">HTML</button>
+                    <button onclick="showTab('css')" style="padding: 8px 16px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px;">CSS</button>
+                </div>
+                <div id="html-tab" style="flex: 1; display: flex; flex-direction: column;">
+                    <label>HTML:</label>
+                    <textarea id="html-code-fallback" style="width: 100%; height: 300px; font-family: monospace;">${editor.getHtml()}</textarea>
+                </div>
+                <div id="css-tab" style="flex: 1; display: none; flex-direction: column;">
+                    <label>CSS:</label>
+                    <textarea id="css-code-fallback" style="width: 100%; height: 300px; font-family: monospace;">${editor.getCss()}</textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="applyCode()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply</button>
+                    <button onclick="closeModal()" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            </div>
+        `;
+
+                                // Add fallback functions
+                                (window as any).showTab = (tabName: string) => {
+                                    document.getElementById('html-tab')!.style.display = tabName === 'html' ? 'flex' : 'none';
+                                    document.getElementById('css-tab')!.style.display = tabName === 'css' ? 'flex' : 'none';
+                                };
+
+                                (window as any).applyCode = () => {
+                                    const html = (document.getElementById('html-code-fallback') as HTMLTextAreaElement)?.value || '';
+                                    const css = (document.getElementById('css-code-fallback') as HTMLTextAreaElement)?.value || '';
+
+                                    try {
+                                        if (html.trim()) editor.setComponents(html.trim());
+                                        if (css.trim()) editor.setStyle(css.trim());
+                                        codeModal.classList.remove('modal-visible');
+                                        const toggleBtn = document.getElementById('toggle-code-modal');
+                                        if (toggleBtn) toggleBtn.classList.remove('active');
+                                    } catch (error) {
+                                        alert('Error applying code');
+                                    }
+                                };
+
+                                (window as any).closeModal = () => {
+                                    codeModal.classList.remove('modal-visible');
+                                    const toggleBtn = document.getElementById('toggle-code-modal');
+                                    if (toggleBtn) toggleBtn.classList.remove('active');
+                                };
+                            }
+                        };
+
+                        // Function untuk RESTORE panels ke DOM utama
+                        const restorePanelsToMainDOM = () => {
+                            const originalStyles = document.querySelector('.styles-container') as HTMLElement;
+                            const originalLayers = document.querySelector('.layers-container') as HTMLElement;
+                            const originalTraits = document.querySelector('.traits-container') as HTMLElement;
+
+                            const stylesContainer = propertiesModal.querySelector('.styles-container-fullscreen') as HTMLElement;
+                            const layersContainer = propertiesModal.querySelector('.layers-container-fullscreen') as HTMLElement;
+                            const traitsContainer = propertiesModal.querySelector('.traits-container-fullscreen') as HTMLElement;
+
+                            if (originalStyles && stylesContainer) {
+                                originalStyles.innerHTML = stylesContainer.innerHTML;
+                                originalStyles.style.display = '';
+                                stylesContainer.innerHTML = '';
+                            }
+
+                            if (originalLayers && layersContainer) {
+                                originalLayers.style.display = '';
+                                layersContainer.innerHTML = '';
+                                if (editor.LayerManager && typeof editor.LayerManager.render === 'function') {
+                                    setTimeout(() => {
+                                        editor.LayerManager.render();
+                                    }, 50);
+                                }
+                            }
+
+                            if (originalTraits && traitsContainer) {
+                                originalTraits.innerHTML = traitsContainer.innerHTML;
+                                originalTraits.style.display = '';
+                                traitsContainer.innerHTML = '';
+                            }
+
+                            setTimeout(() => {
+                                window.dispatchEvent(new Event('resize'));
+                            }, 100);
+                        };
+
+                        // Function untuk switch tab di properties modal
+                        const switchPropertiesModalTab = (tabName: string, command?: string) => {
+                            const tabContents = propertiesModal.querySelectorAll('.properties-modal-tab-content');
+                            tabContents.forEach(tab => tab.classList.remove('active'));
+
+                            const tabs = propertiesModal.querySelectorAll('.properties-modal-tab');
+                            tabs.forEach(tab => tab.classList.remove('active'));
+
+                            const selectedTab = propertiesModal.querySelector(`[data-tab="${tabName}"]`);
+                            const selectedContent = propertiesModal.querySelector(`#${tabName}-tab`);
+
+                            if (selectedTab && selectedContent) {
+                                selectedTab.classList.add('active');
+                                selectedContent.classList.add('active');
+                                movePanelsToPropertiesModal();
+
+                                if (tabName === 'layers') {
+                                    setTimeout(() => {
+                                        refreshLayerManager();
+                                    }, 150);
+                                }
+
+                                if (command && editor.Commands.has(command)) {
+                                    editor.runCommand(command);
+                                }
+
+                                setTimeout(() => {
+                                    window.dispatchEvent(new Event('resize'));
+                                }, 150);
+                            }
+                        };
+
+                        // Function untuk close modal lainnya
+                        const closeOtherModals = (currentModal: string) => {
+                            if (currentModal !== 'blocks' && blocksModal.classList.contains('modal-visible')) {
+                                blocksModal.classList.remove('modal-visible');
+                                const toggleBlocksBtn = document.getElementById('toggle-blocks-modal');
+                                if (toggleBlocksBtn) {
+                                    toggleBlocksBtn.classList.remove('active');
+                                    toggleBlocksBtn.setAttribute('title', 'Show Blocks');
+                                }
+                            }
+
+                            if (currentModal !== 'properties' && propertiesModal.classList.contains('modal-visible')) {
+                                propertiesModal.classList.remove('modal-visible');
+                                const togglePropertiesBtn = document.getElementById('toggle-properties-modal');
+                                if (togglePropertiesBtn) {
+                                    togglePropertiesBtn.classList.remove('active');
+                                    togglePropertiesBtn.setAttribute('title', 'Show Properties');
+                                }
+                                restorePanelsToMainDOM();
+                            }
+
+                            if (currentModal !== 'code' && codeModal.classList.contains('modal-visible')) {
+                                codeModal.classList.remove('modal-visible');
+                                const toggleCodeBtn = document.getElementById('toggle-code-modal');
+                                if (toggleCodeBtn) {
+                                    toggleCodeBtn.classList.remove('active');
+                                    toggleCodeBtn.setAttribute('title', 'Show Code Editor');
+                                }
+                            }
+                        };
+
+                        // TAMBAHKAN FUNGSI YANG HILANG:
+                        const handleKeyDown = (e: KeyboardEvent) => {
+                            if (e.ctrlKey || e.metaKey) {
+                                switch (e.key) {
+                                    case 'z':
+                                        if (e.shiftKey) {
+                                            editor.runCommand('core:redo');
+                                        } else {
+                                            editor.runCommand('core:undo');
+                                        }
+                                        e.preventDefault();
+                                        break;
+                                    case 'y':
+                                        editor.runCommand('core:redo');
+                                        e.preventDefault();
+                                        break;
+                                    case 'f':
+                                        editor.runCommand('core:fullscreen');
+                                        e.preventDefault();
+                                        break;
+                                }
+                            }
+                        };
+
+                        const handleClickOutside = (e: MouseEvent) => {
+                            const target = e.target as HTMLElement;
+
+                            if (blocksModal.classList.contains('modal-visible') &&
+                                !blocksModal.contains(target) &&
+                                !miniToolbar.contains(target) &&
+                                target.id !== 'toggle-blocks-modal') {
+                                blocksModal.classList.remove('modal-visible');
+                                const toggleBtn = document.getElementById('toggle-blocks-modal');
+                                if (toggleBtn) {
+                                    toggleBtn.classList.remove('active');
+                                    toggleBtn.setAttribute('title', 'Show Blocks');
+                                }
+                            }
+
+                            if (propertiesModal.classList.contains('modal-visible') &&
+                                !propertiesModal.contains(target) &&
+                                !miniToolbar.contains(target) &&
+                                target.id !== 'toggle-properties-modal') {
+                                propertiesModal.classList.remove('modal-visible');
+                                const toggleBtn = document.getElementById('toggle-properties-modal');
+                                if (toggleBtn) {
+                                    toggleBtn.classList.remove('active');
+                                    toggleBtn.setAttribute('title', 'Show Properties');
+                                }
+                                restorePanelsToMainDOM();
+                            }
+
+                            if (codeModal.classList.contains('modal-visible') &&
+                                !codeModal.contains(target) &&
+                                !miniToolbar.contains(target) &&
+                                target.id !== 'toggle-code-modal') {
+                                codeModal.classList.remove('modal-visible');
+                                const toggleBtn = document.getElementById('toggle-code-modal');
+                                if (toggleBtn) {
+                                    toggleBtn.classList.remove('active');
+                                    toggleBtn.setAttribute('title', 'Show Code Editor');
+                                }
+                            }
+                        };
+
+                        // Event listeners untuk mini toolbar
+                        const toggleBlocksBtn = document.getElementById('toggle-blocks-modal');
+                        const togglePropertiesBtn = document.getElementById('toggle-properties-modal');
+                        const toggleCodeBtn = document.getElementById('toggle-code-modal');
+                        const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+                        const closeBlocksModalBtn = document.getElementById('close-blocks-modal');
+                        const closePropertiesModalBtn = document.getElementById('close-properties-modal');
+                        const closeCodeModalBtn = document.getElementById('close-code-modal');
+                        const undoBtn = document.getElementById('fullscreen-undo-btn') as HTMLButtonElement | null;
+                        const redoBtn = document.getElementById('fullscreen-redo-btn') as HTMLButtonElement | null;
+
+                        // Properties modal tabs
+                        const propertiesModalTabs = propertiesModal.querySelectorAll('.properties-modal-tab');
+
+                        if (toggleBlocksBtn) {
+                            toggleBlocksBtn.addEventListener('click', () => {
+                                const isVisible = blocksModal.classList.contains('modal-visible');
+                                if (!isVisible) {
+                                    closeOtherModals('blocks');
+                                    renderBlocksToModal();
+                                    blocksModal.classList.add('modal-visible');
+                                    toggleBlocksBtn.classList.add('active');
+                                    toggleBlocksBtn.setAttribute('title', 'Hide Blocks');
+                                } else {
+                                    blocksModal.classList.remove('modal-visible');
+                                    toggleBlocksBtn.classList.remove('active');
+                                    toggleBlocksBtn.setAttribute('title', 'Show Blocks');
+                                }
+                            });
+                        }
+
+                        if (togglePropertiesBtn) {
+                            togglePropertiesBtn.addEventListener('click', () => {
+                                const isVisible = propertiesModal.classList.contains('modal-visible');
+                                if (!isVisible) {
+                                    closeOtherModals('properties');
+                                    movePanelsToPropertiesModal();
+                                    switchPropertiesModalTab('styles', 'show-styles');
+                                    propertiesModal.classList.add('modal-visible');
+                                    togglePropertiesBtn.classList.add('active');
+                                    togglePropertiesBtn.setAttribute('title', 'Hide Properties');
+                                } else {
+                                    propertiesModal.classList.remove('modal-visible');
+                                    togglePropertiesBtn.classList.remove('active');
+                                    togglePropertiesBtn.setAttribute('title', 'Show Properties');
+                                    restorePanelsToMainDOM();
+                                }
+                            });
+                        }
+
+                        if (toggleCodeBtn) {
+                            toggleCodeBtn.addEventListener('click', () => {
+                                const isVisible = codeModal.classList.contains('modal-visible');
+                                if (!isVisible) {
+                                    closeOtherModals('code');
+                                    initializeCodeEditorInModal();
+                                    codeModal.classList.add('modal-visible');
+                                    toggleCodeBtn.classList.add('active');
+                                    toggleCodeBtn.setAttribute('title', 'Hide Code Editor');
+                                } else {
+                                    codeModal.classList.remove('modal-visible');
+                                    toggleCodeBtn.classList.remove('active');
+                                    toggleCodeBtn.setAttribute('title', 'Show Code Editor');
+                                }
+                            });
+                        }
+
+                        if (exitFullscreenBtn) {
+                            exitFullscreenBtn.addEventListener('click', () => {
+                                editor.runCommand('core:fullscreen');
+                            });
+                        }
+
+                        if (closeBlocksModalBtn) {
+                            closeBlocksModalBtn.addEventListener('click', () => {
+                                blocksModal.classList.remove('modal-visible');
+                                if (toggleBlocksBtn) {
+                                    toggleBlocksBtn.classList.remove('active');
+                                    toggleBlocksBtn.setAttribute('title', 'Show Blocks');
+                                }
+                            });
+                        }
+
+                        if (closePropertiesModalBtn) {
+                            closePropertiesModalBtn.addEventListener('click', () => {
+                                propertiesModal.classList.remove('modal-visible');
+                                if (togglePropertiesBtn) {
+                                    togglePropertiesBtn.classList.remove('active');
+                                    togglePropertiesBtn.setAttribute('title', 'Show Properties');
+                                }
+                                restorePanelsToMainDOM();
+                            });
+                        }
+
+                        if (closeCodeModalBtn) {
+                            closeCodeModalBtn.addEventListener('click', () => {
+                                codeModal.classList.remove('modal-visible');
+                                if (toggleCodeBtn) {
+                                    toggleCodeBtn.classList.remove('active');
+                                    toggleCodeBtn.setAttribute('title', 'Show Code Editor');
+                                }
+                            });
+                        }
+
+                        if (undoBtn) {
+                            undoBtn.addEventListener('click', () => {
+                                editor.runCommand('core:undo');
+                            });
+                        }
+
+                        if (redoBtn) {
+                            redoBtn.addEventListener('click', () => {
+                                editor.runCommand('core:redo');
+                            });
+                        }
+
+                        // Properties modal tab events
+                        propertiesModalTabs.forEach(tab => {
+                            tab.addEventListener('click', () => {
+                                const tabName = tab.getAttribute('data-tab');
+                                const command = tab.getAttribute('data-command');
+                                if (tabName) {
+                                    switchPropertiesModalTab(tabName, command || undefined);
+                                }
+                            });
+                        });
+
+                        // Add event listeners
+                        document.addEventListener('keydown', handleKeyDown);
+                        document.addEventListener('mousedown', handleClickOutside);
+
+                        // Add editor listeners
+                        editor.on('undo', updateUndoRedoButtons);
+                        editor.on('redo', updateUndoRedoButtons);
+                        editor.on('update', updateUndoRedoButtons);
+                        editor.on('component:add', updateUndoRedoButtons);
+                        editor.on('component:remove', updateUndoRedoButtons);
+                        editor.on('component:update', updateUndoRedoButtons);
+                        editor.on('component:selected', movePanelsToPropertiesModal);
+                        editor.on('component:add', refreshLayerManager);
+                        editor.on('component:remove', refreshLayerManager);
+                        editor.on('component:update', refreshLayerManager);
+
+                        // Initial update
+                        updateUndoRedoButtons();
+
+                        // Simpan references untuk cleanup
+                        (editor as any).__fullscreenElements = {
+                            toolbar: miniToolbar,
+                            blocksModal: blocksModal,
+                            propertiesModal: propertiesModal,
+                            codeModal: codeModal,
+                            keyHandler: handleKeyDown,
+                            clickHandler: handleClickOutside,
+                            renderBlocks: renderBlocksToModal,
+                            updateUndoRedo: updateUndoRedoButtons,
+                            movePanels: movePanelsToPropertiesModal,
+                            initializeCodeEditor: initializeCodeEditorInModal,
+                            restorePanels: restorePanelsToMainDOM,
+                            refreshLayerManager: refreshLayerManager,
+                            closeOtherModals: closeOtherModals
+                        };
+
+                    } else {
+                        // Exit fullscreen - cleanup
+                        canvasEl.classList.remove('fullscreen-mode');
+                        editorContainer.classList.remove('fullscreen-mode');
+
+                        const elements = (editor as any).__fullscreenElements;
+                        if (elements) {
+                            // Restore panels sebelum cleanup
+                            if (elements.restorePanels) {
+                                elements.restorePanels();
+                            }
+
+                            // Remove event listeners
+                            if (elements.keyHandler) {
+                                document.removeEventListener('keydown', elements.keyHandler);
+                            }
+                            if (elements.clickHandler) {
+                                document.removeEventListener('mousedown', elements.clickHandler);
+                            }
+
+                            // Remove editor listeners
+                            editor.off('undo', elements.updateUndoRedo);
+                            editor.off('redo', elements.updateUndoRedo);
+                            editor.off('update', elements.updateUndoRedo);
+                            editor.off('component:add', elements.updateUndoRedo);
+                            editor.off('component:remove', elements.updateUndoRedo);
+                            editor.off('component:update', elements.updateUndoRedo);
+                            editor.off('component:selected', elements.movePanels);
+                            editor.off('component:add', elements.refreshLayerManager);
+                            editor.off('component:remove', elements.refreshLayerManager);
+                            editor.off('component:update', elements.refreshLayerManager);
+
+                            // Remove DOM elements
+                            if (elements.toolbar && elements.toolbar.parentNode) {
+                                elements.toolbar.parentNode.removeChild(elements.toolbar);
+                            }
+                            if (elements.blocksModal && elements.blocksModal.parentNode) {
+                                elements.blocksModal.parentNode.removeChild(elements.blocksModal);
+                            }
+                            if (elements.propertiesModal && elements.propertiesModal.parentNode) {
+                                elements.propertiesModal.parentNode.removeChild(elements.propertiesModal);
+                            }
+                            if (elements.codeModal && elements.codeModal.parentNode) {
+                                elements.codeModal.parentNode.removeChild(elements.codeModal);
+                            }
+
+                            delete (editor as any).__fullscreenElements;
+                        }
+
+                        // Restore sidebar state berdasarkan device
+                        const device = editor.getDevice();
+                        if (device === 'Desktop') {
+                            setIsSidebarLeftOpen(true);
+                            setIsSidebarRightOpen(true);
+                        }
+
+                        if (elements.codeModal) {
+                            // Remove keyboard event listener
+                            const codeEditorContainer = elements.codeModal.querySelector('#code-editor-panel-fullscreen') as HTMLElement;
+                            if (codeEditorContainer && (editor as any).__codeEditorKeyHandler) {
+                                codeEditorContainer.removeEventListener('keydown', (editor as any).__codeEditorKeyHandler);
+                                delete (editor as any).__codeEditorKeyHandler;
+                            }
+                        }
+                    }
+                }
+            });
+
+            editor.Commands.add('toggle-code-editor', {
+                run(editor) {
+                    editor.runCommand('open-code');
+                }
+            });
+
+            editor.Commands.add('export-template', {
+                run(editor) {
+                    const html = editor.getHtml();
+                    const css = editor.getCss();
+                    const code = `<div>${html}</div><style>${css}</style>`;
+                    const modalContent = `
+                  <textarea readonly style="width:100%; height: 250px; background-color: #1e1e1e; color: #d4d4d4; border: none; border-radius: 5px;">${code}</textarea>
+                  <button id="copy-to-clipboard-btn" class="gjs-btn-prim" style="display: block; margin: 10px auto 0;">Copy</button>
+                `;
+                    editor.Modal.setTitle('Export Template').setContent(modalContent).open();
+                    const modalContentEl = editor.Modal.getContentEl();
+                    if (modalContentEl) {
+                        const copyBtn = modalContentEl.querySelector<HTMLButtonElement>('#copy-to-clipboard-btn');
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', () => {
+                                navigator.clipboard.writeText(code).then(() => {
+                                    copyBtn.innerText = 'Copied!';
+                                    setTimeout(() => (copyBtn.innerText = 'Copy'), 2000);
+                                });
+                            });
+                        }
+                    }
+                },
+            });
+
+            editor.Commands.add('show-json', {
+                run(editor) {
+                    editor.Modal.setTitle('Components JSON')
+                        .setContent(`<textarea style="width:100%; height:250px;">${JSON.stringify(editor.getComponents(), null, 2)}</textarea>`)
+                        .open();
+                },
+            });
+
+            const showOnly = (activePanel: 'layers' | 'styles' | 'traits') => {
+                const panels = {
+                    layers: document.querySelector('.layers-container'),
+                    styles: document.querySelector('.styles-container'),
+                    traits: document.querySelector('.traits-container'),
+                };
+
+                Object.keys(panels).forEach(key => {
+                    const el = panels[key as keyof typeof panels];
+                    if (el instanceof HTMLElement) {
+                        el.style.display = key === activePanel ? '' : 'none';
+                    }
+                });
+            };
+
+            editor.Commands.add('show-blocks', {
+                run() {
+                    const blocksPanel = document.querySelector<HTMLElement>('.blocks-container');
+                    if (blocksPanel) {
+                        blocksPanel.style.display = blocksPanel.style.display === 'none' ? '' : 'none';
+                    }
+                },
+            });
+
+            editor.Commands.add('show-layers', { run: () => showOnly('layers') });
+            editor.Commands.add('show-styles', { run: () => showOnly('styles') });
+            editor.Commands.add('show-traits', { run: () => showOnly('traits') });
+            editor.Commands.add('set-device-desktop', { run: (editor) => editor.setDevice('Desktop') });
+            editor.Commands.add('set-device-mobile', { run: (editor) => editor.setDevice('Mobile') });
+
+            editor.on('device:change', () => {
+                const device = editor.getDevice();
+                if (device === 'Mobile') {
+                    setIsSidebarLeftOpen(false);
+                    setIsSidebarRightOpen(false);
+                } else if (device === 'Desktop') {
+                    setIsSidebarLeftOpen(true);
+                    setIsSidebarRightOpen(true);
+                }
+            });
+
+            editor.on('load', () => {
+                showOnly('styles');
+
+                // Add onClick to all blocks to enable grab functionality
+                const blockManager = editor.BlockManager;
+                blockManager.getAll().forEach((block: Block) => {
+                    block.set('onClick', () => {
+                        editor.runCommand('click:grab-block', { id: block.getId() });
+                    });
+                });
+            });
+
+            // Debug: Check available panels setelah load
+            editor.on('load', () => {
+                log('🎯 Editor loaded - Available panels:', Object.keys(editor.Panels.getPanels()));
+                log('🎯 Options panel buttons:', editor.Panels.getPanel('options')?.get('buttons'));
+                const codeEditorCmd = editor.Commands.get('open-code');
+                if (codeEditorCmd) {
+                    log('✅ Code Editor plugin successfully loaded');
+                } else {
+                    warn('❌ Code Editor plugin not loaded properly');
+                }
+            });
+
+            if (initialData) {
+                editor.loadProjectData(initialData);
+            }
+
+            return () => {
+                editor.destroy();
+            };
+        };
+
+        initializeEditor();
+    }, [editorRef]);
+
+    const handleCommand = (command: string) => {
+        if (editorRefInternal.current) {
+            editorRefInternal.current.Commands.run(command);
+        }
+    };
+
+    return (
+        <div className="flex bg-slate-300 w-full relative h-screen overflow-hidden">
+            <div
+                id="grabbed-info"
+                style={{ position: 'absolute', display: 'none', padding: '5px 10px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: '5px', zIndex: 10000, pointerEvents: 'none' }}
+            ></div>
+
+            {/* Tombol Toggle Sidebar Kiri */}
+            <div
+                className={`absolute top-20 z-40 transition-all duration-300 ease-in-out ${
+                    isSidebarLeftOpen ? 'left-[17.9rem]' : 'left-0'
+                }`}
+            >
+                <div className="flex flex-col space-y-2  pt-1 pb-1 items-center w-10 text-teal-400 bg-white border-t-2 border-r-2 border-b-2 rounded-tr-xl rounded-br-xl border-teal-300">
+                    <button
+                        title="Block Manager"
+                        className="p-1 hover:bg-teal-200 rounded-lg"
+                        onClick={() => setIsSidebarLeftOpen(!isSidebarLeftOpen)}
+                        dangerouslySetInnerHTML={{
+                            __html: isSidebarLeftOpen
+                                ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>'
+                                : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-blocks"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 4a1 1 0 0 1 1 -1h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1z" /><path d="M3 14h12a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h3a2 2 0 0 1 2 2v12" /></svg>',
+                        }}
+                    />
+                    {isSidebarLeftOpen && [
+                        {
+                            id: 'core:preview',
+                            label: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>',
+                            title: 'Preview'
+                        },
+                        {
+                            id: 'export-template',
+                            label: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 17h6" /><path d="M9 13h6" /></svg>',
+                            title: 'Export Code'
+                        },
+                    ].map((btn) => (
+                        <button
+                            key={btn.id}
+                            title={btn.title}
+                            className="p-1 hover:bg-teal-200 rounded-lg"
+                            onClick={() => handleCommand(btn.id)}
+                            dangerouslySetInnerHTML={{ __html: btn.label }}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Panel Kiri (Sidebar) */}
+            <aside
+                className={`absolute left-0 bg-white w-72 z-40 flex-shrink-0 transition-transform duration-300 ease-in-out h-full ${
+                    isSidebarLeftOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="p-1 flex flex-col space-y-4 h-full border-r-2 border-teal-300">
+                    <div className="flex gap-2 mb-2">
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'basic' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('basic')}
+                        >
+                            Basic Blocks
+                        </button>
+                        <button
+                            className={`p-2 rounded flex-1 text-sm ${activeBlocksPanel === 'tailwind' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setActiveBlocksPanel('tailwind')}
+                        >
+                            Tailwind Blocks
+                        </button>
+                    </div>
+                    <div className={'h-[87vh] pt-1 pb-1 overflow-y-auto'}>
+                        <div className="blocks-container flex-grow "></div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Area Editor Utama */}
+            <main className="flex flex-col flex-grow relative bg-slate-300">
+                <div className="panel__top h-12 w-full flex justify-between items-center px-4 bg-slate-700 text-white z-10">
+                    <div className={'flex h-12 w-full p-1'}>
+                        <div className={'flex items-center w-11/12'}>
+                            <div className={'w-3/12 flex items-center '}>
+                                {[
+                                    { id: 'core:preview', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>', title: 'Preview' },
+                                    { id: 'export-template', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 17h6" /><path d="M9 13h6" /></svg>', title: 'Export Code' },
+                                    { id: 'show-json', label: '{...}', title: 'View JSON' },
+                                ].map((btn) => (
+                                    <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                                ))}
+                            </div>
+                            <div className={'w-5/12 flex items-center '}>
+                                {[
+                                    { id: 'set-device-desktop', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10z" /><path d="M7 20h10" /><path d="M9 16v4" /><path d="M15 16v4" /></svg>', title: 'Desktop View' },
+                                    { id: 'set-device-mobile', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14z" /><path d="M11 4h2" /><path d="M12 17v.01" /></svg>', title: 'Mobile View' },
+                                ].map((btn) => (
+                                    <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                                ))}
+                            </div>
+                            <div className={'w-2/12 flex items-center '}>
+                                <div className={'view-plugin-panels'}></div>
+                            </div>
+                            <div className={'w-2/12 flex items-center justify-end'}>
+                                {[
+                                    {
+                                        id: 'core:undo',
+                                        label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 13l-4 -4l4 -4m-4 4h11a4 4 0 0 1 0 8h-1" /></svg>',
+                                        title: 'Undo'
+                                    },
+                                    {
+                                        id: 'core:redo',
+                                        label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 13l4 -4l-4 -4m4 4h-11a4 4 0 0 0 0 8h1" /></svg>',
+                                        title: 'Redo'
+                                    },
+                                    {
+                                        id: 'core:fullscreen',
+                                        label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /></svg>',
+                                        title: 'Fullscreen'
+                                    },
+                                ].map((btn) => (
+                                    <button
+                                        key={btn.id}
+                                        title={btn.title}
+                                        className="p-2 hover:bg-slate-600 rounded"
+                                        onClick={() => handleCommand(btn.id)}
+                                        dangerouslySetInnerHTML={{ __html: btn.label }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className={' flex items-center w-1/12'}>
+                            <div>
+                                {[
+                                    { id: 'show-layers', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" /><path d="M16 16v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h2" /></svg>', title: 'Layers' },
+                                    { id: 'show-styles', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>', title: 'Styles' },
+                                    { id: 'show-traits', label: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>', title: 'Traits' },
+                                ].map((btn) => (
+                                    <button key={btn.id} title={btn.title} className="p-2 hover:bg-slate-600 rounded" onClick={() => handleCommand(btn.id)} dangerouslySetInnerHTML={{ __html: btn.label }} />
+                                ))}
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <div className="flex flex-grow w-full ">
+                    {/* Canvas Utama */}
+                    <div className={`${ isSidebarLeftOpen ? 'w-full ml-72.5 ease-in-out' : 'w-full'}`}>
+                        <div className={`flex-grow editor-canvas `}>
+                            <div ref={editorInstanceRef}></div>
+                        </div>
+                    </div>
+
+                    {/* Tombol Toggle Sidebar Kanan */}
+                    <div className={`absolute top-20 z-40 transition-all duration-300 ease-in-out lg:hidden ${ isSidebarRightOpen ? 'right-[17.9rem]' : 'right-0' }`}>
+                        <div className="flex items-center w-10 text-teal-400 bg-white border-t-2 border-l-2 border-b-2 rounded-tl-xl rounded-bl-xl border-teal-300">
+                            <button title="Style Manager" className="p-1" onClick={() => setIsSidebarRightOpen(!isSidebarRightOpen)}
+                                    dangerouslySetInnerHTML={{
+                                        __html: isSidebarRightOpen
+                                            ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>'
+                                            : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M17 17a2 2 0 0 1 -2 -2v-8h-5a2 2 0 0 0 -2 2" /><path d="M7 17a2.775 2.775 0 0 0 2.632 -1.897l.368 -1.103a13.4 13.4 0 0 1 3.236 -5.236l1.764 -1.764" /><path d="M10 14h5" /></svg>',
+                                    }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Panel Kanan */}
+                    <aside
+                        className={`bg-white text-xs transition-transform duration-300 ease-in-out z-40
+               flex-shrink-0
+               lg:relative lg:w-72 lg:translate-x-0 lg:border-l-2 lg:border-teal-300
+               absolute top-0 right-0 h-full w-72
+               ${isSidebarRightOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                    >
+                        <div className="panel__right h-full flex flex-col">
+                            {/* Tab Navigation */}
+                            <div className="flex border-b border-gray-200 bg-white">
+                                <button className="flex-1 py-2 text-xs font-medium border-b-2 border-teal-500">
+                                    Properties
+                                </button>
+                            </div>
+
+                            {/* Content Area */}
+                            <div className="flex-1 overflow-y-auto">
+                                <div className="layers-container" style={{ display: 'none' }}></div>
+                                <div className="styles-container"></div>
+                                <div className="traits-container" style={{ display: 'none' }}></div>
+
+                                {/* Container untuk Code Editor */}
+                                <div id="code-editor-panel" style={{ display: 'none' }}></div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </main>
+        </div>
+    );
+};
+export default Editor;

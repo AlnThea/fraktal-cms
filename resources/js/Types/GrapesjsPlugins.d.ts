@@ -20,3 +20,4 @@ declare module 'grapesjs-tabs';
 declare module 'grapesjs-component-code-editor';
 declare module 'grapesjs-rulers';
 declare module 'grapesjs-tailwindcss-plugin';
+declare module 'grapesjs-plugin-toolbox' { const toolboxPlugin: any; export default toolboxPlugin; }
