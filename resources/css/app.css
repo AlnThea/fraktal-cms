@@ -1,17 +1,23 @@
+/* === TAILWCSS & BASE IMPORTS === */
 @import 'tailwindcss';
 @import './custom.css';
-
 @source inline(' max-w-xs max-w-sm max-w-md max-w-lg max-w-xl max-w-2xl max-w-3xl max-w-4xl max-w-5xl max-w-6xl max-w-7xl');
-/*@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views!*.blade.php';*/
-/*@source '../../storage/framework/views!*.php';*/
-/*@source '..!**!*.blade.php';*/
-/*@source '..!**!*.js';*/
-/*@source "../views";*/
-/* @import `grapesjs-custom.css` */
 
+
+/* === BASE STYLES === */
 [x-cloak] {
     display: none;
 }
+
+/* === EDITOR LAYOUT === */
+.editor-canvas {
+    position: relative;
+    height: 100%;
+    min-height: 600px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* === FULLSCREEN MODE === */
 .fullscreen-mode {
     position: fixed !important;
     top: 0 !important;
@@ -19,37 +25,91 @@
     width: 100vw !important;
     height: 100vh !important;
     z-index: 10000 !important;
-    background: white;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
 }
 
-/* Sembunyikan semua element samping */
 .fullscreen-mode ~ * {
     display: none !important;
 }
 
-
-/* Mini Toolbar di Fullscreen - VERTICAL LAYOUT */
+/* === MINI TOOLBAR DI FULLSCREEN === */
 .fullscreen-mini-toolbar {
     position: fixed !important;
     top: 50% !important;
     right: 20px !important;
     transform: translateY(-50%) !important;
     z-index: 10003 !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid #ccc !important;
-    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
     padding: 15px 10px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important;
-    backdrop-filter: blur(10px) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
-    min-width: 60px !important;
+    gap: 10px !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow:
+        0 10px 25px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    min-width: 64px !important;
+}
+
+.fullscreen-mini-toolbar button {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    width: 44px !important;
+    height: 44px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.fullscreen-mini-toolbar button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+}
+
+.fullscreen-mini-toolbar button svg {
+    stroke: #475569 !important;
+    width: 20px !important;
+    height: 20px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    transition: stroke 0.3s ease !important;
+}
+
+.fullscreen-mini-toolbar button:hover {
+    transform: translateY(-2px) scale(1.05) !important;
+    border-color: #10b981 !important;
+    box-shadow:
+        0 8px 16px rgba(16, 185, 129, 0.15),
+        0 2px 4px rgba(16, 185, 129, 0.1) !important;
+}
+
+.fullscreen-mini-toolbar button:hover svg {
+    stroke: #10b981 !important;
 }
 
 .fullscreen-mini-toolbar button.active {
-    background: #007acc !important;
-    border-color: #007acc !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-color: #10b981 !important;
+    box-shadow:
+        0 8px 16px rgba(16, 185, 129, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }
 
 .fullscreen-mini-toolbar button.active svg {
@@ -60,301 +120,371 @@
     opacity: 0.4 !important;
     cursor: not-allowed !important;
     transform: none !important;
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
 }
 
 .fullscreen-mini-toolbar button:disabled:hover {
-    background: none !important;
-    border-color: #ddd !important;
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
     transform: none !important;
+    box-shadow: none !important;
 }
 
-.fullscreen-mini-toolbar button {
-    background: none !important;
-    border: 1px solid #ddd !important;
-    border-radius: 8px !important;
-    padding: 10px !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.2s ease !important;
-    width: 40px !important;
-    height: 40px !important;
+.fullscreen-mini-toolbar button:disabled svg {
+    stroke: #94a3b8 !important;
 }
 
-.fullscreen-mini-toolbar button:hover:not(:disabled) {
-    background: #f0f0f0 !important;
-    border-color: #999 !important;
-    transform: scale(1.05) !important;
-}
-
-.fullscreen-mini-toolbar svg {
-    stroke: #333 !important;
-    width: 20px !important;
-    height: 20px !important;
-}
-
-/* Divider antara group tombol */
+/* Toolbox Divider */
 .toolbox-divider {
     height: 1px !important;
-    background: #e1e1e1 !important;
-    margin: 4px 0 !important;
-    width: 100% !important;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent) !important;
+    margin: 8px 4px !important;
+    width: 80% !important;
+    align-self: center !important;
 }
 
-/* Modal Blocks Panel di Fullscreen - L SHAPE LAYOUT */
-.fullscreen-blocks-modal {
+/* Tooltip Styling */
+.fullscreen-mini-toolbar button::after {
+    content: attr(title);
+    position: absolute;
+    right: 120%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0f172a;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 10004;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-mini-toolbar button:hover::after {
+    opacity: 1;
+    visibility: visible;
+    right: 110%;
+}
+
+/* === MODAL BASE STYLING === */
+.fullscreen-blocks-modal,
+.fullscreen-properties-modal,
+.fullscreen-code-modal {
     position: fixed !important;
-    top: 50% !important;
-    right: 90px !important;
-    transform: translateY(-50%) !important;
-    width: 320px !important;
-    height: 80vh !important;
-    max-height: 600px !important;
     z-index: 10002 !important;
     background: white !important;
-    border: 1px solid #e1e1e1 !important;
-    border-radius: 12px !important;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 8px 16px -4px rgba(0, 0, 0, 0.1) !important;
     display: flex !important;
     flex-direction: column !important;
     opacity: 0 !important;
     visibility: hidden !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
 }
 
-.fullscreen-blocks-modal.modal-visible {
+.modal-visible {
     opacity: 1 !important;
     visibility: visible !important;
-    right: 100px !important;
+    animation: modalAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Header Modal Blocks */
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === BLOCKS MODAL SPECIFIC === */
+.fullscreen-blocks-modal {
+    top: 50% !important;
+    right: 100px !important;
+    transform: translateY(-50%) !important;
+    width: 360px !important;
+    height: 85vh !important;
+    max-height: 700px !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-color: #cbd5e1 !important;
+}
+
 .blocks-modal-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    border-bottom: 1px solid #334155 !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 24px !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 4px 20px !important;
-    background: #ccfbf1 !important;
-    border-bottom: 1px solid #dee2e6 !important;
     flex-shrink: 0 !important;
-    border-radius: 12px 12px 0 0 !important;
 }
 
 .blocks-modal-header h3 {
+    color: #f1f5f9 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
     margin: 0 !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    color: #333 !important;
 }
 
 .blocks-modal-header button {
-    background: none !important;
-    border: none !important;
-    font-size: 18px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    color: #cbd5e1 !important;
     cursor: pointer !important;
-    padding: 5px 10px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s ease !important;
-    color: #666 !important;
+    padding: 8px 12px !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
 }
 
 .blocks-modal-header button:hover {
-    background: #14b8a6 !important;
+    background: rgba(255, 255, 255, 0.2) !important;
     color: white !important;
-    border-radius: 100% !important;
+    transform: rotate(90deg) !important;
 }
 
-/* Content Area Modal */
 .blocks-modal-content {
     flex: 1 !important;
     overflow-y: auto !important;
-    padding: 0 !important;
-    border-radius: 0 0 12px 12px !important;
+    padding: 4px !important;
+    background: transparent !important;
+    border-radius: 0 0 16px 16px !important;
 }
 
-/* Category Styling untuk Modal */
+/* Blocks Category Styling */
 .blocks-modal-category {
-    margin-bottom: 0 !important;
-    border-bottom: 1px dashed #9ca3af !important;
-}
-
-.blocks-modal-category-title {
-    padding: 10px 20px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #495057 !important;
-    border-bottom: 2px dashed #5eead4 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-}
-
-.blocks-modal-category-grid {
-    padding: 12px !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-    grid-auto-flow: dense !important;
-}
-
-/* Block Item Styling untuk Modal */
-.modal-block-item {
-    padding: 12px 8px !important;
-    margin: 0 !important;
-    border: 1px solid #dee2e6 !important;
-    border-radius: 8px !important;
-    cursor: pointer !important;
-    background: white !important;
-    transition: all 0.2s ease !important;
-    text-align: center !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 80px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-.modal-block-item:hover svg {
-    stroke: #5eead4 !important;
-}
-
-.modal-block-item svg {
-    stroke: black !important;
-}
-
-.modal-block-item:hover {
-    background: #ecfdf5 !important;
-    color: #5eead4 !important;
-    border-color: #a7f3d0 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.15) !important;
-}
-
-.modal-block-media {
-    font-size: 20px !important;
-    margin-bottom: 8px !important;
-    color: #495057 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 24px !important;
-}
-
-.modal-block-label {
-    font-weight: 500 !important;
-    font-size: 12px !important;
-    color: #333 !important;
-    line-height: 1.3 !important;
-    text-align: center !important;
-    word-wrap: break-word !important;
-    max-width: 100% !important;
-}
-
-/* Properties Modal di Fullscreen - L SHAPE LAYOUT */
-.fullscreen-properties-modal {
-    position: fixed !important;
-    top: 50% !important;
-    right: 90px !important; /* Position di samping mini toolbar */
-    transform: translateY(-50%) !important;
-    width: 350px !important;
-    height: 80vh !important;
-    max-height: 600px !important;
-    z-index: 10002 !important;
-    background: white !important;
-    border: 1px solid #e1e1e1 !important;
+    margin: 8px !important;
     border-radius: 12px !important;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
+    overflow: hidden !important;
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
     transition: all 0.3s ease !important;
 }
 
-.fullscreen-properties-modal.modal-visible {
-    opacity: 1 !important;
-    visibility: visible !important;
-    right: 100px !important;
+.blocks-modal-category:hover {
+    border-color: #10b981 !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15) !important;
 }
 
-/* Header Properties Modal */
+.blocks-modal-category-title {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    color: #065f46 !important;
+    border-bottom: 2px solid #10b981 !important;
+    padding: 12px 20px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+}
+
+.blocks-modal-category-grid {
+    padding: 16px !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    grid-auto-flow: dense !important;
+}
+
+/* Block Item Styling */
+.modal-block-item {
+    padding: 16px 12px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    background: white !important;
+    cursor: pointer !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 90px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.modal-block-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+}
+
+.modal-block-item:hover {
+    border-color: #10b981 !important;
+    background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow:
+        0 12px 24px rgba(16, 185, 129, 0.2),
+        0 4px 8px rgba(16, 185, 129, 0.1) !important;
+}
+
+.modal-block-item:hover::before {
+    opacity: 1;
+}
+
+.modal-block-media {
+    font-size: 24px !important;
+    margin-bottom: 12px !important;
+    color: #475569 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    transition: all 0.3s ease !important;
+}
+
+.modal-block-item:hover .modal-block-media {
+    color: #059669 !important;
+    transform: scale(1.1) !important;
+}
+
+.modal-block-label {
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    color: #1e293b !important;
+    line-height: 1.4 !important;
+    text-align: center !important;
+    word-wrap: break-word !important;
+    max-width: 100% !important;
+    position: relative !important;
+    z-index: 1 !important;
+    transition: all 0.3s ease !important;
+}
+
+.modal-block-item:hover .modal-block-label {
+    color: #065f46 !important;
+}
+
+/* === PROPERTIES MODAL SPECIFIC === */
+.fullscreen-properties-modal {
+    top: 50% !important;
+    right: 100px !important;
+    transform: translateY(-50%) !important;
+    width: 380px !important;
+    height: 85vh !important;
+    max-height: 700px !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border-color: #cbd5e1 !important;
+}
+
 .properties-modal-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-bottom: 1px solid #047857 !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 24px !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2) !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 12px 20px !important;
-    background: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6 !important;
+    gap: 16px !important;
     flex-shrink: 0 !important;
-    border-radius: 12px 12px 0 0 !important;
 }
 
 .properties-modal-header h3 {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
     margin: 0 !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    color: #333 !important;
+    white-space: nowrap !important;
 }
 
 .properties-modal-tabs {
     display: flex !important;
-    gap: 6px !important;
+    gap: 8px !important;
     flex: 1 !important;
     justify-content: center !important;
     flex-wrap: wrap !important;
 }
 
 .properties-modal-tab {
-    padding: 6px 12px !important;
-    border: 1px solid #dee2e6 !important;
-    border-radius: 6px !important;
-    background: white !important;
+    padding: 10px 16px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
     cursor: pointer !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    color: #666 !important;
-    transition: all 0.2s ease !important;
     white-space: nowrap !important;
 }
 
 .properties-modal-tab:hover {
-    background: #f8f9fa !important;
-    border-color: #999 !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
 }
 
 .properties-modal-tab.active {
-    background: #5eead4 !important;
-    border-color: #5eead4 !important;
-    color: white !important;
+    background: white !important;
+    border-color: white !important;
+    color: #059669 !important;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-1px) !important;
 }
 
 .properties-modal-header button {
-    background: none !important;
-    border: none !important;
-    font-size: 18px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    color: white !important;
     cursor: pointer !important;
-    padding: 5px 10px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s ease !important;
-    color: #666 !important;
+    padding: 8px 12px !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
 }
 
 .properties-modal-header button:hover {
-    background: #e9ecef !important;
-    color: #333 !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: rotate(90deg) !important;
 }
 
-/* Content Area Properties Modal */
 .properties-modal-content {
     flex: 1 !important;
     overflow: hidden !important;
     padding: 0 !important;
-    border-radius: 0 0 12px 12px !important;
+    border-radius: 0 0 16px 16px !important;
 }
 
-/* Tab Content */
 .properties-modal-tab-content {
     display: none !important;
     height: 100% !important;
@@ -366,245 +496,312 @@
     display: block !important;
 }
 
-/* Styling khusus untuk semua panels di properties modal */
-.properties-modal-content .gjs-pn-panel {
-    border: none !important;
-    box-shadow: none !important;
-    height: 100% !important;
-    margin: 0 !important;
+/* Styles Tab Specific */
+#styles-tab {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
 }
 
-.styles-container-fullscreen:empty::before,
-.layers-container-fullscreen:empty::before,
-.traits-container-fullscreen:empty::before {
-    content: 'Empty - Not Rendered' !important;
-    display: block !important;
-    padding: 20px !important;
-    text-align: center !important;
-    color: #999 !important;
-    font-style: italic !important;
-    background: #f8f9fa !important;
-    border: 2px dashed #dee2e6 !important;
-    border-radius: 8px !important;
-}
-
-.properties-modal-content .gjs-sm-sector {
-    background: #ffffff !important;
-    border: 1px solid #e5e7eb !important;
-    border-radius: 8px !important;
-    margin-bottom: 8px !important;
+#styles-tab .gjs-sm-sector {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    margin: 12px 16px !important;
     overflow: hidden !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.properties-modal-content .gjs-sm-sector:hover {
-    border-color: #d1d5db !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+#styles-tab .gjs-sm-sector:hover {
+    border-color: #10b981 !important;
+    box-shadow:
+        0 8px 24px rgba(16, 185, 129, 0.15),
+        0 2px 4px rgba(16, 185, 129, 0.1) !important;
+    transform: translateY(-2px) !important;
 }
 
-
-.properties-modal-content .gjs-sm-sector__header {
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
-    padding: 14px 16px !important;
+#styles-tab .gjs-sm-sector__header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    padding: 18px 20px !important;
+    border-bottom: 1px solid #334155 !important;
+    position: relative !important;
     cursor: pointer !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    font-weight: 600 !important;
-    color: #374151 !important;
-    transition: all 0.2s ease !important;
     user-select: none !important;
 }
 
-.properties-modal-content .gjs-sm-sector__header:hover {
-    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
-}
-
-.properties-modal-content .gjs-sm-sector__title {
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #374151 !important;
+#styles-tab .gjs-sm-sector__title {
+    color: #f1f5f9 !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
     letter-spacing: 0.3px !important;
+    flex: 1 !important;
 }
 
+#styles-tab .gjs-sm-sector__header::after {
+    content: '▼' !important;
+    font-size: 10px !important;
+    color: #cbd5e1 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin-left: 12px !important;
+}
 
-.properties-modal-content .gjs-sm-properties {
+#styles-tab .gjs-sm-sector[data-hidden="true"] .gjs-sm-sector__header::after {
+    transform: rotate(-90deg) !important;
+}
+
+#styles-tab .gjs-sm-sector__content {
+    padding: 24px !important;
+    background: white !important;
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#styles-tab .gjs-sm-sector[data-hidden="true"] .gjs-sm-sector__content {
+    display: none !important;
+}
+
+/* Layers Tab Specific */
+#layers-tab {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+#layers-tab .gjs-layers-container {
+    padding: 16px !important;
+    background: transparent !important;
+}
+
+#layers-tab .gjs-layer {
+    background: white !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    margin-bottom: 10px !important;
+    padding: 16px !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+    cursor: pointer !important;
     display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
+    align-items: center !important;
+    gap: 12px !important;
 }
 
-.properties-modal-content .gjs-sm-sector__content {
-    padding: 20px !important;
-    background: #ffffff !important;
-    animation: fadeIn 0.3s ease !important;
+#layers-tab .gjs-layer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #10b981, #059669);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+#layers-tab .gjs-layer:hover {
+    border-color: #10b981 !important;
+    background: #f0fdfa !important;
+    transform: translateX(4px) !important;
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.15) !important;
 }
 
-/* Style untuk Layers Panel */
-.properties-modal-content .gjs-layers {
-    height: 100% !important;
-    padding: 0 !important;
+#layers-tab .gjs-layer:hover::before {
+    opacity: 1;
 }
 
-.properties-modal-content .gjs-layers-container {
-    padding: 12px !important;
+#layers-tab .gjs-layer.gjs-selected {
+    background: linear-gradient(135deg, #f0fdfa 0%, #d1fae5 100%) !important;
+    border-color: #10b981 !important;
+    box-shadow:
+        0 12px 24px rgba(16, 185, 129, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    transform: translateX(8px) scale(1.02) !important;
 }
 
-/* Style untuk Traits Panel */
-.properties-modal-content .gjs-traits {
-    height: 100% !important;
-    padding: 0 !important;
+#layers-tab .gjs-layer-title {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    flex: 1 !important;
 }
 
-.properties-modal-content .gjs-traits-container {
+#layers-tab .gjs-layer-count {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    font-size: 11px !important;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3) !important;
+}
+
+/* Traits Tab Specific */
+#traits-tab {
+    background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%) !important;
+}
+
+#traits-tab .gjs-traits-container {
+    padding: 16px !important;
+    background: transparent !important;
     height: 100% !important;
     overflow-y: auto !important;
-    padding: 12px !important;
 }
 
-/* Style untuk Code Editor */
-.properties-modal-content #code-editor-panel {
-    height: 100% !important;
-    width: 100% !important;
-    border: none !important;
-}
-
-.properties-modal-content .gjs-ce-content {
-    height: 100% !important;
-}
-
-/* Style untuk Style Manager */
-.properties-modal-content .gjs-sm-properties {
-    padding: 8px !important;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .fullscreen-properties-modal {
-        width: 320px !important;
-        height: 70vh !important;
-    }
-
-    .properties-modal-tabs {
-        gap: 4px !important;
-    }
-
-    .properties-modal-tab {
-        padding: 4px 8px !important;
-        font-size: 10px !important;
-    }
-}
-
-
-/* Perbaikan untuk Code Editor Modal di Fullscreen */
-.fullscreen-code-modal {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 95% !important;
-    max-width: 1400px !important;
-    height: 70vh !important;
-    max-height: 600px !important;
-    z-index: 10002 !important;
+#traits-tab .gjs-trait {
     background: white !important;
-    border: 1px solid #e1e1e1 !important;
+    border: 2px solid #e7e5e4 !important;
     border-radius: 12px !important;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
+    margin-bottom: 12px !important;
+    padding: 20px !important;
     transition: all 0.3s ease !important;
 }
 
-.fullscreen-code-modal.modal-visible {
-    opacity: 1 !important;
-    visibility: visible !important;
-    bottom: 30px !important;
+#traits-tab .gjs-trait:hover {
+    border-color: #d6d3d1 !important;
+    background: #fafaf9 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Header Code Modal */
+#traits-tab .gjs-label {
+    color: #1c1917 !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    margin-bottom: 12px !important;
+    letter-spacing: 0.3px !important;
+}
+
+#traits-tab .gjs-field {
+    background: #fafaf9 !important;
+    border: 2px solid #e7e5e4 !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+#traits-tab .gjs-field:focus {
+    border-color: #a8a29e !important;
+    box-shadow: 0 0 0 3px rgba(168, 162, 158, 0.1) !important;
+    background: white !important;
+    outline: none !important;
+}
+
+/* === CODE EDITOR MODAL SPECIFIC === */
+.fullscreen-code-modal {
+    bottom: 30px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 90% !important;
+    max-width: 1200px !important;
+    height: 75vh !important;
+    max-height: 650px !important;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    border: 1px solid #475569 !important;
+}
+
 .code-modal-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-bottom: 1px solid #475569 !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 24px !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 12px 20px !important;
-    background: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6 !important;
     flex-shrink: 0 !important;
-    border-radius: 12px 12px 0 0 !important;
 }
 
 .code-modal-header h3 {
+    color: #f1f5f9 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
     margin: 0 !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    color: #333 !important;
 }
 
 .code-modal-header button {
-    background: none !important;
-    border: none !important;
-    font-size: 18px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    color: #cbd5e1 !important;
     cursor: pointer !important;
-    padding: 5px 10px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s ease !important;
-    color: #666 !important;
+    padding: 8px 12px !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
 }
 
 .code-modal-header button:hover {
-    background: #e9ecef !important;
-    color: #333 !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    transform: rotate(90deg) !important;
 }
 
-/* Content Area Code Modal - FIXED */
 .code-modal-content {
     flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
     padding: 0 !important;
-    border-radius: 0 0 12px 12px !important;
+    border-radius: 0 0 16px 16px !important;
+    background: #0f172a !important;
 }
 
-/* Container untuk code editor */
-#code-editor-panel-fullscreen {
-    flex: 1 !important;
+/* Code Editor Tabs */
+.code-tab-header {
     display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    min-height: 0 !important;
+    background: #1e293b !important;
+    border-bottom: 1px solid #475569 !important;
+    padding: 0 24px !important;
 }
 
-/* Style untuk Tab Layout Code Editor */
 .code-tab-btn {
-    transition: all 0.2s ease !important;
-    position: relative !important;
+    padding: 14px 20px !important;
     border: none !important;
-    background: none !important;
+    background: transparent !important;
+    color: #94a3b8 !important;
     cursor: pointer !important;
     font-weight: 500 !important;
-    padding: 12px 20px !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    border-bottom: 3px solid transparent !important;
 }
 
 .code-tab-btn:hover {
-    background-color: #f1f5f9 !important;
-    color: #059669 !important;
+    color: #e2e8f0 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .code-tab-btn.active {
-    background-color: #f0fdfa !important;
-    font-weight: 600 !important;
-    border-bottom: 2px solid #10b981 !important;
     color: #10b981 !important;
+    border-bottom-color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.05) !important;
+}
+
+/* Code Editor Content */
+.code-editor-content {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 20px 24px !important;
+    gap: 20px !important;
+    overflow: hidden !important;
 }
 
 .tab-content {
@@ -619,199 +816,299 @@
     display: flex !important;
 }
 
-/* Style untuk textarea */
+/* Code Textareas */
 #html-code-fullscreen,
 #css-code-fullscreen {
     width: 100% !important;
     flex: 1 !important;
-    min-height: 200px !important;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    padding: 15px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 6px !important;
+    min-height: 300px !important;
+    font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+    padding: 20px !important;
+    border: 1px solid #475569 !important;
+    border-radius: 8px !important;
     resize: none !important;
-    background: #f8f9fa !important;
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
     box-sizing: border-box !important;
+    transition: all 0.3s ease !important;
 }
 
 #html-code-fullscreen:focus,
 #css-code-fullscreen:focus {
-    outline: none !important;
     border-color: #10b981 !important;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+    outline: none !important;
+    background: #1a2332 !important;
 }
 
-/* Action buttons container - FIXED POSITION */
+/* Code Editor Actions */
 .code-editor-actions {
-    padding: 15px 20px !important;
-    border-top: 1px solid #dee2e6 !important;
-    background: #f8f9fa !important;
+    padding: 16px 24px !important;
+    border-top: 1px solid #475569 !important;
+    background: #1e293b !important;
     display: flex !important;
-    gap: 10px !important;
+    gap: 12px !important;
     justify-content: flex-end !important;
     flex-shrink: 0 !important;
 }
 
-/* Style untuk tombol Apply dan Close */
-#apply-code-fullscreen,
-#close-code-fullscreen {
-    padding: 10px 20px !important;
-    border: none !important;
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    font-weight: 500 !important;
-    transition: all 0.2s ease !important;
-    min-width: 120px !important;
-}
-
 #apply-code-fullscreen {
-    background: #10b981 !important;
+    padding: 12px 24px !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.3s ease !important;
+    min-width: 140px !important;
 }
 
 #apply-code-fullscreen:hover {
-    background: #059669 !important;
-    transform: translateY(-1px) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
 }
 
 #close-code-fullscreen {
-    background: #6b7280 !important;
-    color: white !important;
+    padding: 12px 24px !important;
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    color: #e2e8f0 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.3s ease !important;
+    min-width: 140px !important;
 }
 
 #close-code-fullscreen:hover {
-    background: #4b5563 !important;
-    transform: translateY(-1px) !important;
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(71, 85, 105, 0.4) !important;
 }
 
-/* Ensure proper scrolling */
-.code-modal-content {
-    overflow: hidden !important;
+/* === SCROLLBAR STYLING === */
+.blocks-modal-content::-webkit-scrollbar,
+.properties-modal-tab-content::-webkit-scrollbar,
+.code-modal-content::-webkit-scrollbar {
+    width: 8px !important;
 }
 
-/* Fix untuk tab content height */
-.tab-content.active {
-    height: 100% !important;
-    overflow: hidden !important;
-}
-/* Icon untuk collapse/expand */
-.properties-modal-content .gjs-sm-sector__header::after {
-    content: '▼' !important;
-    font-size: 10px !important;
-    transition: transform 0.2s ease !important;
+.blocks-modal-content::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 4px !important;
 }
 
-.properties-modal-content .gjs-sm-sector[data-hidden="true"] .gjs-sm-sector__header::after {
-    transform: rotate(-90deg) !important;
+.blocks-modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%) !important;
+    border-radius: 4px !important;
 }
 
-/* Perbaikan untuk Layers Panel */
-.properties-modal-content .gjs-layers-container {
-    padding: 12px !important;
-}
-
-.properties-modal-content .gjs-layer {
-    padding: 12px 16px !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    border-radius: 6px !important;
-    margin-bottom: 4px !important;
-}
-
-.properties-modal-content .gjs-layer:last-child {
-    border-bottom: none !important;
-}
-
-.properties-modal-content .gjs-layer:hover {
-    background: #f8fafc !important;
-    transform: translateX(2px) !important;
-}
-
-.properties-modal-content .gjs-layer.gjs-selected {
-    background: #ecfdf5 !important;
-    border-left: 4px solid #10b981 !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1) !important;
-}
-
-.properties-modal-content .gjs-layer-caret {
-    color: #9ca3af !important;
-    font-size: 12px !important;
-}
-
-.properties-modal-content .gjs-layer-title {
-    font-weight: 500 !important;
-    color: #374151 !important;
-    flex: 1 !important;
-    font-size: 13px !important;
-}
-
-.properties-modal-content .gjs-layer-count {
-    background: #e5e7eb !important;
-    color: #6b7280 !important;
-    padding: 2px 8px !important;
-    border-radius: 12px !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-}
-
-/* Scrollbar styling */
-.properties-modal-tab-content {
-    scrollbar-width: thin !important;
-    scrollbar-color: #c1c1c1 #f1f1f1 !important;
-}
-
-.properties-modal-tab-content::-webkit-scrollbar {
-    width: 6px !important;
+.blocks-modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%) !important;
 }
 
 .properties-modal-tab-content::-webkit-scrollbar-track {
-    background: #f1f1f1 !important;
-    border-radius: 3px !important;
+    background: transparent !important;
 }
 
 .properties-modal-tab-content::-webkit-scrollbar-thumb {
-    background: #c1c1c1 !important;
-    border-radius: 3px !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-radius: 4px !important;
 }
 
 .properties-modal-tab-content::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8 !important;
-}
-.properties-modal-content .gjs-sm-sector[data-hidden="true"] .gjs-sm-sector__content {
-    display: none !important;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
 }
 
-.properties-modal-content .gjs-sm-sector:not([data-hidden="true"]) .gjs-sm-sector__content {
-    display: block !important;
+.code-modal-content::-webkit-scrollbar-track {
+    background: #1e293b !important;
 }
 
-/* Perbaikan untuk collapse icon */
-.properties-modal-content .gjs-sm-sector__header {
-    position: relative !important;
-    padding-right: 30px !important;
+.code-modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    border-radius: 4px !important;
 }
 
-.properties-modal-content .gjs-sm-sector__header::after {
-    content: '▼' !important;
-    font-size: 10px !important;
-    transition: transform 0.2s ease !important;
-    position: absolute !important;
-    right: 16px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
+.code-modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
 }
 
-.properties-modal-content .gjs-sm-sector[data-hidden="true"] .gjs-sm-sector__header::after {
-    transform: translateY(-50%) rotate(-90deg) !important;
+/* === EMPTY STATE STYLING === */
+.styles-container-fullscreen:empty::before,
+.layers-container-fullscreen:empty::before,
+.traits-container-fullscreen:empty::before {
+    content: 'Loading...' !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 200px !important;
+    color: #94a3b8 !important;
+    font-style: italic !important;
+    font-size: 14px !important;
+    background: #f8fafc !important;
+    border: 2px dashed #cbd5e1 !important;
+    border-radius: 12px !important;
+    margin: 20px !important;
 }
 
-/* Pastikan content hidden by default jika ada data-hidden */
-.properties-modal-content .gjs-sm-sector__content[data-hidden="true"] {
-    display: none !important;
+/* === GRABBED INFO STYLING === */
+.grabbed-info {
+    position: fixed !important;
+    top: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 10005 !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    box-shadow:
+        0 10px 25px rgba(16, 185, 129, 0.3),
+        0 5px 10px rgba(16, 185, 129, 0.2) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    animation: slideDown 0.3s ease !important;
+    max-width: 90% !important;
+    text-align: center !important;
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
+@media (max-width: 1400px) {
+    .fullscreen-blocks-modal,
+    .fullscreen-properties-modal {
+        width: 340px !important;
+        right: 90px !important;
+    }
+
+    .fullscreen-code-modal {
+        width: 92% !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .fullscreen-mini-toolbar {
+        right: 16px !important;
+        padding: 12px 8px !important;
+        min-width: 56px !important;
+    }
+
+    .fullscreen-mini-toolbar button {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .fullscreen-blocks-modal,
+    .fullscreen-properties-modal {
+        width: 320px !important;
+        right: 80px !important;
+    }
+
+    .properties-modal-tabs {
+        gap: 6px !important;
+    }
+
+    .properties-modal-tab {
+        padding: 8px 12px !important;
+        font-size: 11px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .fullscreen-mini-toolbar {
+        right: 12px !important;
+        padding: 10px 6px !important;
+        min-width: 52px !important;
+        gap: 8px !important;
+    }
+
+    .fullscreen-mini-toolbar button {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 8px !important;
+    }
+
+    .fullscreen-mini-toolbar svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .fullscreen-blocks-modal,
+    .fullscreen-properties-modal {
+        width: 300px !important;
+        right: 70px !important;
+        height: 80vh !important;
+    }
+
+    .fullscreen-code-modal {
+        width: 95% !important;
+        height: 70vh !important;
+        bottom: 20px !important;
+    }
+
+    .blocks-modal-category-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .code-tab-btn {
+        padding: 12px 16px !important;
+        font-size: 13px !important;
+    }
+
+    .code-editor-content {
+        padding: 16px !important;
+    }
+
+    #apply-code-fullscreen,
+    #close-code-fullscreen {
+        min-width: 120px !important;
+        padding: 10px 20px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .fullscreen-blocks-modal,
+    .fullscreen-properties-modal {
+        width: 280px !important;
+        right: 60px !important;
+    }
+
+    .properties-modal-header {
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 16px !important;
+    }
+
+    .properties-modal-tabs {
+        order: 1 !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+
+    .properties-modal-header h3 {
+        order: 0 !important;
+    }
+
+    .properties-modal-header button {
+        order: 2 !important;
+        align-self: flex-end !important;
+        margin-top: -40px !important;
+    }
+}
+
+/* === PRINT STYLING === */
+@media print {
+    .fullscreen-mini-toolbar,
+    .fullscreen-blocks-modal,
+    .fullscreen-properties-modal,
+    .fullscreen-code-modal {
+        display: none !important;
+    }
 }

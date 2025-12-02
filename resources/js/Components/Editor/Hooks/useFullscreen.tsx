@@ -90,79 +90,100 @@ export const useFullscreen = () => {
 
     // Helper untuk setup collapse/expand pada style sectors
     // Helper untuk setup collapse/expand pada style sectors
+    // Di file useFullscreen.ts, perbaiki fungsi setupStyleSectorsCollapse
     const setupStyleSectorsCollapse = (container: HTMLElement) => {
         if (!container) return;
 
-        // Cari semua sector headers
-        const sectorHeaders = container.querySelectorAll('.gjs-sm-sector__header');
+        // Tunggu hingga DOM benar-benar siap
+        setTimeout(() => {
+            // Cari semua sector headers menggunakan selector yang lebih spesifik
+            const sectorHeaders = container.querySelectorAll('.gjs-sm-sector .gjs-sm-sector__header');
 
-        if (sectorHeaders.length === 0) {
-            console.log('No style sectors found, trying alternative selector...');
-            // Coba selector alternatif
-            const altSectors = container.querySelectorAll('[class*="sector"]');
-            console.log('Alternative sectors found:', altSectors.length);
-        }
+            console.log(`Found ${sectorHeaders.length} style sector headers`);
 
-        sectorHeaders.forEach(header => {
-            // Cek apakah sudah ada event listener
-            if ((header as any).__hasCollapseListener) return;
-
-            const sector = header.closest('.gjs-sm-sector');
-            if (!sector) {
-                console.log('No sector found for header');
-                return;
-            }
-
-            const content = sector.querySelector('.gjs-sm-sector__content');
-            if (!content) {
-                console.log('No content found for sector');
-                return;
-            }
-
-            // Set initial state - check if content is visible
-            const isContentVisible = (content as HTMLElement).style.display !== 'none' &&
-                content.getAttribute('data-hidden') !== 'true';
-
-            if (!isContentVisible) {
-                (content as HTMLElement).style.display = 'none';
-                sector.setAttribute('data-hidden', 'true');
-            } else {
-                sector.setAttribute('data-hidden', 'false');
-            }
-
-            // Add click event
-            header.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const currentSector = (e.currentTarget as HTMLElement).closest('.gjs-sm-sector');
-                const currentContent = currentSector?.querySelector('.gjs-sm-sector__content');
-
-                if (currentSector && currentContent) {
-                    const isHidden = currentSector.getAttribute('data-hidden') === 'true';
-
-                    if (isHidden) {
-                        // Expand
-                        (currentContent as HTMLElement).style.display = 'block';
-                        currentSector.setAttribute('data-hidden', 'false');
-                    } else {
-                        // Collapse
-                        (currentContent as HTMLElement).style.display = 'none';
-                        currentSector.setAttribute('data-hidden', 'true');
-                    }
-
-                    // Trigger resize untuk GrapesJS
-                    setTimeout(() => {
-                        window.dispatchEvent(new Event('resize'));
-                    }, 50);
+            sectorHeaders.forEach((header, index) => {
+                // Skip jika sudah ada event listener
+                if ((header as any).__hasCollapseListener) {
+                    console.log(`Sector ${index} already has listener, skipping`);
+                    return;
                 }
+
+                const sector = header.closest('.gjs-sm-sector');
+                if (!sector) {
+                    console.log(`No sector found for header ${index}`);
+                    return;
+                }
+
+                const content = sector.querySelector('.gjs-sm-sector__content');
+                if (!content) {
+                    console.log(`No content found for sector ${index}`);
+                    return;
+                }
+
+                // Set initial state
+                const isInitiallyOpen = sector.getAttribute('data-open') === 'true' ||
+                    sector.getAttribute('data-hidden') !== 'true';
+
+                // Set display berdasarkan state awal
+                if (!isInitiallyOpen) {
+                    (content as HTMLElement).style.display = 'none';
+                    sector.setAttribute('data-hidden', 'true');
+                } else {
+                    (content as HTMLElement).style.display = 'block';
+                    sector.setAttribute('data-hidden', 'false');
+                }
+
+                // Add collapse/expand icon
+                if (!header.querySelector('.collapse-icon')) {
+                    const icon = document.createElement('span');
+                    icon.className = 'collapse-icon';
+                    icon.innerHTML = isInitiallyOpen ? '▼' : '▶';
+                    icon.style.fontSize = '10px';
+                    icon.style.marginLeft = '8px';
+                    icon.style.transition = 'transform 0.2s ease';
+                    header.appendChild(icon);
+                }
+
+                // Add click event
+                header.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const currentSector = (e.currentTarget as HTMLElement).closest('.gjs-sm-sector');
+                    const currentContent = currentSector?.querySelector('.gjs-sm-sector__content');
+                    const icon = currentSector?.querySelector('.collapse-icon');
+
+                    if (currentSector && currentContent && icon) {
+                        const isHidden = currentSector.getAttribute('data-hidden') === 'true';
+
+                        if (isHidden) {
+                            // Expand
+                            (currentContent as HTMLElement).style.display = 'block';
+                            currentSector.setAttribute('data-hidden', 'false');
+                            icon.innerHTML = '▼';
+                        } else {
+                            // Collapse
+                            (currentContent as HTMLElement).style.display = 'none';
+                            currentSector.setAttribute('data-hidden', 'true');
+                            icon.innerHTML = '▶';
+                        }
+
+                        // Trigger resize untuk GrapesJS
+                        setTimeout(() => {
+                            window.dispatchEvent(new Event('resize'));
+                            if ((window as any).__fullscreenEditor) {
+                                (window as any).__fullscreenEditor.trigger('change:canvasOffset');
+                            }
+                        }, 50);
+                    }
+                });
+
+                // Mark as having listener
+                (header as any).__hasCollapseListener = true;
             });
 
-            // Mark as having listener
-            (header as any).__hasCollapseListener = true;
-        });
-
-        console.log(`Style sectors collapse/expand initialized for ${sectorHeaders.length} sectors`);
+            console.log(`Style sectors collapse/expand initialized for ${sectorHeaders.length} sectors`);
+        }, 200); // Delay untuk memastikan GrapesJS sudah merender
     };
 
     // Function to RESTORE panels to main DOM
@@ -250,10 +271,10 @@ export const useFullscreen = () => {
                             if (currentEditor.StyleManager) {
                                 reinitializeGrapesComponent(currentEditor.StyleManager, container, originalContainer);
 
-                                // Setup collapse/expand
+                                // Setup collapse/expand dengan delay lebih lama
                                 setTimeout(() => {
                                     setupStyleSectorsCollapse(container);
-                                }, 150);
+                                }, 300); // Delay diperpanjang
                             }
                             break;
 
@@ -271,29 +292,16 @@ export const useFullscreen = () => {
                     }
                 }
 
-                // Run command if available
-                const command = selectedTab?.getAttribute('data-command');
-                if (command && currentEditor.Commands.has(command)) {
-                    setTimeout(() => {
-                        currentEditor.runCommand(command);
-                    }, 100);
-                }
-
-                // Refresh editor
+                // Reset flag dengan delay
                 setTimeout(() => {
-                    if (currentEditor.trigger) {
-                        currentEditor.trigger('component:selected', currentEditor.getSelected());
-                    }
-                    window.dispatchEvent(new Event('resize'));
-
-                    // Reset flag
                     isSwitchingTab.current = false;
-                }, 200);
+                }, 100);
+
             } catch (error) {
                 console.error('Error in tab switch:', error);
                 isSwitchingTab.current = false;
             }
-        }, 50);
+        }, 100);
     };
 
     // Enter canvas fullscreen mode
