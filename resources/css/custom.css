@@ -3839,3 +3839,30 @@ span.CodeMirror-selectedtext {
     border: none !important;
 }
 
+.gjs-sm-composite .gjs-sm-properties {
+    display: flex;
+    flex-wrap: wrap; /* Penting: biar wrap ke baris baru */
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    gap: 10px; /* Spasi antar item */
+    width: 75%;
+}
+
+.gjs-sm-composite .gjs-sm-property {
+    flex: 1 1 calc(50% - 5px); /* Maksimal 2 kolom */
+    min-width: 0; /* Penting untuk text overflow */
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.gjs-sm-property__margin .gjs-sm-properties::after, .gjs-sm-property__padding .gjs-sm-properties::after {
+    position: absolute;
+    left: 65% !important;
+    top: 25% !important;
+}
+
+.gjs-sm-property__margin-top .gjs-field, .gjs-sm-property__margin-bottom .gjs-field, .gjs-sm-property__margin-right .gjs-field, .gjs-sm-property__margin-left .gjs-field, .gjs-sm-property__padding-top .gjs-field, .gjs-sm-property__padding-bottom .gjs-field, .gjs-sm-property__padding-right .gjs-field, .gjs-sm-property__padding-left .gjs-field {
+    background-color: var(--gjs-input-color) !important; /* ngikutin color grapejs*/
+}
