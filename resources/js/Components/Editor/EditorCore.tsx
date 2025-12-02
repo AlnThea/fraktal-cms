@@ -78,9 +78,6 @@ const EditorCore: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) =
                                 // Hide sidebars when entering fullscreen
                                 setIsSidebarLeftOpen(false);
                                 setIsSidebarRightOpen(false);
-
-                                // Setup fullscreen functionality
-                                setupFullscreenFunctionality(editor);
                             } else {
                                 exitFullscreen(editor);
                                 // Restore sidebars based on device when exiting
@@ -89,9 +86,6 @@ const EditorCore: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) =
                                     setIsSidebarLeftOpen(true);
                                     setIsSidebarRightOpen(true);
                                 }
-
-                                // Restore panels to original locations
-                                restorePanelsToOriginal(editor);
                             }
                         }
                     });
@@ -170,293 +164,293 @@ const EditorCore: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) =
     }, [editorRef, initialData]);
 
     // Setup fullscreen functionality
-    const setupFullscreenFunctionality = (editor: any) => {
-        // Function to render blocks to fullscreen modal
-        const renderBlocksToFullscreen = () => {
-            const blocksContent = document.querySelector('.blocks-modal-content');
-            if (!blocksContent) return;
-
-            const blocks = editor.BlockManager.getAll();
-            const blocksByCategory: { [key: string]: any[] } = {};
-
-            blocks.forEach((block: any) => {
-                const category = block.getCategoryLabel() || 'Basic';
-                if (!blocksByCategory[category]) {
-                    blocksByCategory[category] = [];
-                }
-                blocksByCategory[category].push(block);
-            });
-
-            let html = '';
-            Object.entries(blocksByCategory).forEach(([category, categoryBlocks]) => {
-                html += `
-                    <div class="blocks-modal-category">
-                        <div class="blocks-modal-category-title">${category}</div>
-                        <div class="blocks-modal-category-grid">
-                `;
-
-                categoryBlocks.forEach((block) => {
-                    const media = block.getMedia();
-                    html += `
-                        <div class="modal-block-item" data-block-id="${block.getId()}">
-                            <div class="modal-block-media">
-                                ${media || '<div style="width: 20px; height: 20px; background: #6c757d; border-radius: 3px;"></div>'}
-                            </div>
-                            <div class="modal-block-label">${block.getLabel()}</div>
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-                `;
-            });
-
-            blocksContent.innerHTML = html;
-
-            // Add click handlers to blocks
-            blocksContent.querySelectorAll('.modal-block-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    const blockId = (e.currentTarget as HTMLElement).dataset.blockId;
-                    if (blockId) {
-                        editor.runCommand('click:grab-block', { id: blockId });
-                        const block = editor.BlockManager.get(blockId);
-                        if (block) {
-                            const component = block.getContent();
-                            editor.getSelected()?.append(component);
-                            setShowBlocksModal(false);
-                        }
-                    }
-                });
-
-                // Add hover effects
-                item.addEventListener('mouseenter', () => {
-                    (item as HTMLElement).style.backgroundColor = '#ecfdf5';
-                    (item as HTMLElement).style.borderColor = '#a7f3d0';
-                    (item as HTMLElement).style.transform = 'translateY(-2px)';
-                    (item as HTMLElement).style.boxShadow = '0 4px 12px rgba(0, 122, 204, 0.15)';
-                });
-
-                item.addEventListener('mouseleave', () => {
-                    (item as HTMLElement).style.backgroundColor = '#fff';
-                    (item as HTMLElement).style.borderColor = '#dee2e6';
-                    (item as HTMLElement).style.transform = 'translateY(0)';
-                    (item as HTMLElement).style.boxShadow = 'none';
-                });
-            });
-        };
-
-        // Function to move panels to properties modal
-        const movePanelsToPropertiesModal = () => {
-            const stylesContainer = document.querySelector('.styles-container-fullscreen');
-            const layersContainer = document.querySelector('.layers-container-fullscreen');
-            const traitsContainer = document.querySelector('.traits-container-fullscreen');
-
-            const originalStyles = document.querySelector('.styles-container');
-            const originalLayers = document.querySelector('.layers-container');
-            const originalTraits = document.querySelector('.traits-container');
-
-            if (stylesContainer && originalStyles) {
-                stylesContainer.innerHTML = originalStyles.innerHTML;
-                // Hide original during fullscreen
-                (originalStyles as HTMLElement).style.display = 'none';
-            }
-
-            if (layersContainer && originalLayers) {
-                layersContainer.innerHTML = originalLayers.innerHTML;
-                (originalLayers as HTMLElement).style.display = 'none';
-            }
-
-            if (traitsContainer && originalTraits) {
-                traitsContainer.innerHTML = originalTraits.innerHTML;
-                (originalTraits as HTMLElement).style.display = 'none';
-            }
-        };
-
-        // Function to setup code editor in modal
-        const setupCodeEditorInModal = () => {
-            const codeEditorContainer = document.getElementById('code-editor-panel-fullscreen');
-            if (!codeEditorContainer || !editor) return;
-
-            codeEditorContainer.innerHTML = `
-                <div style="height: 100%; display: flex; flex-direction: column;">
-                    <!-- Tab Header -->
-                    <div style="display: flex; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-                        <button class="code-tab-btn active" data-tab="html" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid #10b981; font-weight: 500; color: #10b981;">
-                            HTML
-                        </button>
-                        <button class="code-tab-btn" data-tab="css" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; color: #6b7280;">
-                            CSS
-                        </button>
-                    </div>
-
-                    <!-- Tab Content -->
-                    <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 15px; overflow: hidden;">
-                        <!-- HTML Tab Content -->
-                        <div class="tab-content active" id="html-tab-content" style="flex: 1; display: flex; flex-direction: column;">
-                            <label style="font-weight: bold; margin-bottom: 8px;">HTML Code:</label>
-                            <textarea
-                                id="html-code-fullscreen"
-                                style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
-                                spellcheck="false"
-                                placeholder="Enter your HTML code here..."
-                            >${editor.getHtml()}</textarea>
-                        </div>
-
-                        <!-- CSS Tab Content -->
-                        <div class="tab-content" id="css-tab-content" style="flex: 1; display: none; flex-direction: column;">
-                            <label style="font-weight: bold; margin-bottom: 8px;">CSS Code:</label>
-                            <textarea
-                                id="css-code-fullscreen"
-                                style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
-                                spellcheck="false"
-                                placeholder="Enter your CSS code here..."
-                            >${editor.getCss()}</textarea>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div style="padding: 15px 20px; border-top: 1px solid #dee2e6; background: #f8f9fa; display: flex; gap: 10px; justify-content: flex-end;">
-                        <button id="apply-code-fullscreen" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
-                            Apply Changes
-                        </button>
-                        <button id="close-code-fullscreen" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            // Add tab functionality
-            const tabButtons = codeEditorContainer.querySelectorAll('.code-tab-btn');
-            const tabContents = codeEditorContainer.querySelectorAll('.tab-content');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const tabName = this.getAttribute('data-tab');
-
-                    // Update active tab button
-                    tabButtons.forEach(btn => {
-                        (btn as HTMLElement).style.borderBottomColor = 'transparent';
-                        (btn as HTMLElement).style.color = '#6b7280';
-                        btn.classList.remove('active');
-                    });
-                    (this as HTMLElement).style.borderBottomColor = '#10b981';
-                    (this as HTMLElement).style.color = '#10b981';
-                    this.classList.add('active');
-
-                    // Show/hide tab content
-                    tabContents.forEach(content => {
-                        (content as HTMLElement).style.display = 'none';
-                        content.classList.remove('active');
-                    });
-
-                    const activeContent = codeEditorContainer.querySelector(`#${tabName}-tab-content`);
-                    if (activeContent) {
-                        (activeContent as HTMLElement).style.display = 'flex';
-                        activeContent.classList.add('active');
-                    }
-                });
-            });
-
-            // Add apply functionality
-            const applyBtn = document.getElementById('apply-code-fullscreen');
-            const closeBtn = document.getElementById('close-code-fullscreen');
-
-            if (applyBtn) {
-                applyBtn.addEventListener('click', () => {
-                    try {
-                        const html = (document.getElementById('html-code-fullscreen') as HTMLTextAreaElement)?.value || '';
-                        const css = (document.getElementById('css-code-fullscreen') as HTMLTextAreaElement)?.value || '';
-
-                        // Use safe methods
-                        if (html.trim()) {
-                            editor.setComponents(html.trim());
-                        }
-                        if (css.trim()) {
-                            editor.setStyle(css.trim());
-                        }
-
-                        // Show success feedback
-                        (applyBtn as HTMLElement).textContent = 'Applied!';
-                        (applyBtn as HTMLElement).style.backgroundColor = '#059669';
-
-                        setTimeout(() => {
-                            (applyBtn as HTMLElement).textContent = 'Apply Changes';
-                            (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
-                            setShowCodeModal(false);
-                        }, 1000);
-
-                    } catch (error) {
-                        console.error('Error applying code:', error);
-                        (applyBtn as HTMLElement).textContent = 'Error!';
-                        (applyBtn as HTMLElement).style.backgroundColor = '#dc2626';
-
-                        setTimeout(() => {
-                            (applyBtn as HTMLElement).textContent = 'Apply Changes';
-                            (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
-                        }, 2000);
-
-                        alert('Error applying code. Please check your HTML/CSS syntax.');
-                    }
-                });
-            }
-
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    setShowCodeModal(false);
-                });
-            }
-        };
-
-        // Function to restore panels to original locations
-        const restorePanelsToOriginal = (editor: any) => {
-            const stylesContainer = document.querySelector('.styles-container-fullscreen');
-            const layersContainer = document.querySelector('.layers-container-fullscreen');
-            const traitsContainer = document.querySelector('.traits-container-fullscreen');
-
-            const originalStyles = document.querySelector('.styles-container');
-            const originalLayers = document.querySelector('.layers-container');
-            const originalTraits = document.querySelector('.traits-container');
-
-            if (stylesContainer && originalStyles) {
-                // originalStyles.innerHTML = stylesContainer.innerHTML;
-                (originalStyles as HTMLElement).style.display = '';
-                stylesContainer.innerHTML = '';
-            }
-
-            if (layersContainer && originalLayers) {
-                // originalLayers.innerHTML = layersContainer.innerHTML;
-                (originalLayers as HTMLElement).style.display = '';
-                layersContainer.innerHTML = '';
-            }
-
-            if (traitsContainer && originalTraits) {
-                // originalTraits.innerHTML = traitsContainer.innerHTML;
-                (originalTraits as HTMLElement).style.display = '';
-                traitsContainer.innerHTML = '';
-            }
-
-            // Trigger re-render if needed
-            if (editor.LayerManager && typeof editor.LayerManager.render === 'function') {
-                setTimeout(() => {
-                    editor.LayerManager.render();
-                }, 50);
-            }
-        };
-
-        // Store functions for later use
-        (editor as any).__fullscreenFunctions = {
-            renderBlocksToFullscreen,
-            movePanelsToPropertiesModal,
-            setupCodeEditorInModal,
-            restorePanelsToOriginal
-        };
-
-        // Initial render
-        renderBlocksToFullscreen();
-    };
+    // const setupFullscreenFunctionality = (editor: any) => {
+    //     // Function to render blocks to fullscreen modal
+    //     const renderBlocksToFullscreen = () => {
+    //         const blocksContent = document.querySelector('.blocks-modal-content');
+    //         if (!blocksContent) return;
+    //
+    //         const blocks = editor.BlockManager.getAll();
+    //         const blocksByCategory: { [key: string]: any[] } = {};
+    //
+    //         blocks.forEach((block: any) => {
+    //             const category = block.getCategoryLabel() || 'Basic';
+    //             if (!blocksByCategory[category]) {
+    //                 blocksByCategory[category] = [];
+    //             }
+    //             blocksByCategory[category].push(block);
+    //         });
+    //
+    //         let html = '';
+    //         Object.entries(blocksByCategory).forEach(([category, categoryBlocks]) => {
+    //             html += `
+    //                 <div class="blocks-modal-category">
+    //                     <div class="blocks-modal-category-title">${category}</div>
+    //                     <div class="blocks-modal-category-grid">
+    //             `;
+    //
+    //             categoryBlocks.forEach((block) => {
+    //                 const media = block.getMedia();
+    //                 html += `
+    //                     <div class="modal-block-item" data-block-id="${block.getId()}">
+    //                         <div class="modal-block-media">
+    //                             ${media || '<div style="width: 20px; height: 20px; background: #6c757d; border-radius: 3px;"></div>'}
+    //                         </div>
+    //                         <div class="modal-block-label">${block.getLabel()}</div>
+    //                     </div>
+    //                 `;
+    //             });
+    //
+    //             html += `
+    //                     </div>
+    //                 </div>
+    //             `;
+    //         });
+    //
+    //         blocksContent.innerHTML = html;
+    //
+    //         // Add click handlers to blocks
+    //         blocksContent.querySelectorAll('.modal-block-item').forEach(item => {
+    //             item.addEventListener('click', (e) => {
+    //                 const blockId = (e.currentTarget as HTMLElement).dataset.blockId;
+    //                 if (blockId) {
+    //                     editor.runCommand('click:grab-block', { id: blockId });
+    //                     const block = editor.BlockManager.get(blockId);
+    //                     if (block) {
+    //                         const component = block.getContent();
+    //                         editor.getSelected()?.append(component);
+    //                         setShowBlocksModal(false);
+    //                     }
+    //                 }
+    //             });
+    //
+    //             // Add hover effects
+    //             item.addEventListener('mouseenter', () => {
+    //                 (item as HTMLElement).style.backgroundColor = '#ecfdf5';
+    //                 (item as HTMLElement).style.borderColor = '#a7f3d0';
+    //                 (item as HTMLElement).style.transform = 'translateY(-2px)';
+    //                 (item as HTMLElement).style.boxShadow = '0 4px 12px rgba(0, 122, 204, 0.15)';
+    //             });
+    //
+    //             item.addEventListener('mouseleave', () => {
+    //                 (item as HTMLElement).style.backgroundColor = '#fff';
+    //                 (item as HTMLElement).style.borderColor = '#dee2e6';
+    //                 (item as HTMLElement).style.transform = 'translateY(0)';
+    //                 (item as HTMLElement).style.boxShadow = 'none';
+    //             });
+    //         });
+    //     };
+    //
+    //     // Function to move panels to properties modal
+    //     const movePanelsToPropertiesModal = () => {
+    //         const stylesContainer = document.querySelector('.styles-container-fullscreen');
+    //         const layersContainer = document.querySelector('.layers-container-fullscreen');
+    //         const traitsContainer = document.querySelector('.traits-container-fullscreen');
+    //
+    //         const originalStyles = document.querySelector('.styles-container');
+    //         const originalLayers = document.querySelector('.layers-container');
+    //         const originalTraits = document.querySelector('.traits-container');
+    //
+    //         if (stylesContainer && originalStyles) {
+    //             stylesContainer.innerHTML = originalStyles.innerHTML;
+    //             // Hide original during fullscreen
+    //             (originalStyles as HTMLElement).style.display = 'none';
+    //         }
+    //
+    //         if (layersContainer && originalLayers) {
+    //             layersContainer.innerHTML = originalLayers.innerHTML;
+    //             (originalLayers as HTMLElement).style.display = 'none';
+    //         }
+    //
+    //         if (traitsContainer && originalTraits) {
+    //             traitsContainer.innerHTML = originalTraits.innerHTML;
+    //             (originalTraits as HTMLElement).style.display = 'none';
+    //         }
+    //     };
+    //
+    //     // Function to setup code editor in modal
+    //     const setupCodeEditorInModal = () => {
+    //         const codeEditorContainer = document.getElementById('code-editor-panel-fullscreen');
+    //         if (!codeEditorContainer || !editor) return;
+    //
+    //         codeEditorContainer.innerHTML = `
+    //             <div style="height: 100%; display: flex; flex-direction: column;">
+    //                 <!-- Tab Header -->
+    //                 <div style="display: flex; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+    //                     <button class="code-tab-btn active" data-tab="html" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid #10b981; font-weight: 500; color: #10b981;">
+    //                         HTML
+    //                     </button>
+    //                     <button class="code-tab-btn" data-tab="css" style="padding: 12px 20px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; color: #6b7280;">
+    //                         CSS
+    //                     </button>
+    //                 </div>
+    //
+    //                 <!-- Tab Content -->
+    //                 <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 15px; overflow: hidden;">
+    //                     <!-- HTML Tab Content -->
+    //                     <div class="tab-content active" id="html-tab-content" style="flex: 1; display: flex; flex-direction: column;">
+    //                         <label style="font-weight: bold; margin-bottom: 8px;">HTML Code:</label>
+    //                         <textarea
+    //                             id="html-code-fullscreen"
+    //                             style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
+    //                             spellcheck="false"
+    //                             placeholder="Enter your HTML code here..."
+    //                         >${editor.getHtml()}</textarea>
+    //                     </div>
+    //
+    //                     <!-- CSS Tab Content -->
+    //                     <div class="tab-content" id="css-tab-content" style="flex: 1; display: none; flex-direction: column;">
+    //                         <label style="font-weight: bold; margin-bottom: 8px;">CSS Code:</label>
+    //                         <textarea
+    //                             id="css-code-fullscreen"
+    //                             style="width: 100%; height: 100%; min-height: 400px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; line-height: 1.5; padding: 15px; border: 1px solid #ddd; border-radius: 6px; resize: none; background: #f8f9fa;"
+    //                             spellcheck="false"
+    //                             placeholder="Enter your CSS code here..."
+    //                         >${editor.getCss()}</textarea>
+    //                     </div>
+    //                 </div>
+    //
+    //                 <!-- Action Buttons -->
+    //                 <div style="padding: 15px 20px; border-top: 1px solid #dee2e6; background: #f8f9fa; display: flex; gap: 10px; justify-content: flex-end;">
+    //                     <button id="apply-code-fullscreen" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
+    //                         Apply Changes
+    //                     </button>
+    //                     <button id="close-code-fullscreen" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
+    //                         Close
+    //                     </button>
+    //                 </div>
+    //             </div>
+    //         `;
+    //
+    //         // Add tab functionality
+    //         const tabButtons = codeEditorContainer.querySelectorAll('.code-tab-btn');
+    //         const tabContents = codeEditorContainer.querySelectorAll('.tab-content');
+    //
+    //         tabButtons.forEach(button => {
+    //             button.addEventListener('click', function() {
+    //                 const tabName = this.getAttribute('data-tab');
+    //
+    //                 // Update active tab button
+    //                 tabButtons.forEach(btn => {
+    //                     (btn as HTMLElement).style.borderBottomColor = 'transparent';
+    //                     (btn as HTMLElement).style.color = '#6b7280';
+    //                     btn.classList.remove('active');
+    //                 });
+    //                 (this as HTMLElement).style.borderBottomColor = '#10b981';
+    //                 (this as HTMLElement).style.color = '#10b981';
+    //                 this.classList.add('active');
+    //
+    //                 // Show/hide tab content
+    //                 tabContents.forEach(content => {
+    //                     (content as HTMLElement).style.display = 'none';
+    //                     content.classList.remove('active');
+    //                 });
+    //
+    //                 const activeContent = codeEditorContainer.querySelector(`#${tabName}-tab-content`);
+    //                 if (activeContent) {
+    //                     (activeContent as HTMLElement).style.display = 'flex';
+    //                     activeContent.classList.add('active');
+    //                 }
+    //             });
+    //         });
+    //
+    //         // Add apply functionality
+    //         const applyBtn = document.getElementById('apply-code-fullscreen');
+    //         const closeBtn = document.getElementById('close-code-fullscreen');
+    //
+    //         if (applyBtn) {
+    //             applyBtn.addEventListener('click', () => {
+    //                 try {
+    //                     const html = (document.getElementById('html-code-fullscreen') as HTMLTextAreaElement)?.value || '';
+    //                     const css = (document.getElementById('css-code-fullscreen') as HTMLTextAreaElement)?.value || '';
+    //
+    //                     // Use safe methods
+    //                     if (html.trim()) {
+    //                         editor.setComponents(html.trim());
+    //                     }
+    //                     if (css.trim()) {
+    //                         editor.setStyle(css.trim());
+    //                     }
+    //
+    //                     // Show success feedback
+    //                     (applyBtn as HTMLElement).textContent = 'Applied!';
+    //                     (applyBtn as HTMLElement).style.backgroundColor = '#059669';
+    //
+    //                     setTimeout(() => {
+    //                         (applyBtn as HTMLElement).textContent = 'Apply Changes';
+    //                         (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
+    //                         setShowCodeModal(false);
+    //                     }, 1000);
+    //
+    //                 } catch (error) {
+    //                     console.error('Error applying code:', error);
+    //                     (applyBtn as HTMLElement).textContent = 'Error!';
+    //                     (applyBtn as HTMLElement).style.backgroundColor = '#dc2626';
+    //
+    //                     setTimeout(() => {
+    //                         (applyBtn as HTMLElement).textContent = 'Apply Changes';
+    //                         (applyBtn as HTMLElement).style.backgroundColor = '#10b981';
+    //                     }, 2000);
+    //
+    //                     alert('Error applying code. Please check your HTML/CSS syntax.');
+    //                 }
+    //             });
+    //         }
+    //
+    //         if (closeBtn) {
+    //             closeBtn.addEventListener('click', () => {
+    //                 setShowCodeModal(false);
+    //             });
+    //         }
+    //     };
+    //
+    //     // Function to restore panels to original locations
+    //     const restorePanelsToOriginal = (editor: any) => {
+    //         const stylesContainer = document.querySelector('.styles-container-fullscreen');
+    //         const layersContainer = document.querySelector('.layers-container-fullscreen');
+    //         const traitsContainer = document.querySelector('.traits-container-fullscreen');
+    //
+    //         const originalStyles = document.querySelector('.styles-container');
+    //         const originalLayers = document.querySelector('.layers-container');
+    //         const originalTraits = document.querySelector('.traits-container');
+    //
+    //         if (stylesContainer && originalStyles) {
+    //             // originalStyles.innerHTML = stylesContainer.innerHTML;
+    //             (originalStyles as HTMLElement).style.display = '';
+    //             stylesContainer.innerHTML = '';
+    //         }
+    //
+    //         if (layersContainer && originalLayers) {
+    //             // originalLayers.innerHTML = layersContainer.innerHTML;
+    //             (originalLayers as HTMLElement).style.display = '';
+    //             layersContainer.innerHTML = '';
+    //         }
+    //
+    //         if (traitsContainer && originalTraits) {
+    //             // originalTraits.innerHTML = traitsContainer.innerHTML;
+    //             (originalTraits as HTMLElement).style.display = '';
+    //             traitsContainer.innerHTML = '';
+    //         }
+    //
+    //         // Trigger re-render if needed
+    //         if (editor.LayerManager && typeof editor.LayerManager.render === 'function') {
+    //             setTimeout(() => {
+    //                 editor.LayerManager.render();
+    //             }, 50);
+    //         }
+    //     };
+    //
+    //     // Store functions for later use
+    //     (editor as any).__fullscreenFunctions = {
+    //         renderBlocksToFullscreen,
+    //         movePanelsToPropertiesModal,
+    //         setupCodeEditorInModal,
+    //         restorePanelsToOriginal
+    //     };
+    //
+    //     // Initial render
+    //     renderBlocksToFullscreen();
+    // };
 
     const setupEditorEvents = (editor: any) => {
         editor.on('device:change', () => {
@@ -474,23 +468,48 @@ const EditorCore: React.FC<EditorProps> = ({ onSave, initialData, editorRef }) =
             err('Editor error:', error);
         });
 
-        // Update blocks when blocks change
+        // Update blocks when blocks change - menggunakan fungsi dari hook
         editor.on('block:add', () => {
-            if (isFullscreen && editorRefInternal.current?.__fullscreenFunctions?.renderBlocksToFullscreen) {
-                editorRefInternal.current.__fullscreenFunctions.renderBlocksToFullscreen();
+            if (isFullscreen) {
+                const editorInstance = (window as any).__fullscreenEditor;
+                if (editorInstance) {
+                    // Panggil fungsi render blocks dari hook
+                    const blocksContent = document.querySelector('.blocks-modal-content');
+                    if (blocksContent && editorInstance.BlockManager) {
+                        // Trigger re-render dari hook
+                        setTimeout(() => {
+                            const fullscreenHook = useFullscreen();
+                            fullscreenHook.renderBlocksToFullscreen(editorInstance);
+                        }, 100);
+                    }
+                }
             }
         });
 
         editor.on('block:remove', () => {
-            if (isFullscreen && editorRefInternal.current?.__fullscreenFunctions?.renderBlocksToFullscreen) {
-                editorRefInternal.current.__fullscreenFunctions.renderBlocksToFullscreen();
+            if (isFullscreen) {
+                const editorInstance = (window as any).__fullscreenEditor;
+                if (editorInstance) {
+                    // Panggil fungsi render blocks dari hook
+                    setTimeout(() => {
+                        const fullscreenHook = useFullscreen();
+                        fullscreenHook.renderBlocksToFullscreen(editorInstance);
+                    }, 100);
+                }
             }
         });
 
         // Update properties when component is selected
         editor.on('component:selected', () => {
-            if (isFullscreen && editorRefInternal.current?.__fullscreenFunctions?.movePanelsToPropertiesModal) {
-                editorRefInternal.current.__fullscreenFunctions.movePanelsToPropertiesModal();
+            if (isFullscreen && showPropertiesModal) {
+                const editorInstance = (window as any).__fullscreenEditor;
+                if (editorInstance) {
+                    // Trigger refresh properties modal
+                    setTimeout(() => {
+                        const fullscreenHook = useFullscreen();
+                        fullscreenHook.switchPropertiesModalTab('styles', editorInstance);
+                    }, 50);
+                }
             }
         });
     };

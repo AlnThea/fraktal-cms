@@ -7,6 +7,7 @@ export const useFullscreen = () => {
     const [showPropertiesModal, setShowPropertiesModal] = useState(false);
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [activePropertiesTab, setActivePropertiesTab] = useState('styles');
+    const isSwitchingTab = useRef(false);
 
     const fullscreenElements = useRef<{
         toolbar: HTMLElement | null;
@@ -55,74 +56,114 @@ export const useFullscreen = () => {
         fullscreenElements.current.originalLayers = originalLayers;
         fullscreenElements.current.originalTraits = originalTraits;
 
-        if (originalStyles && stylesContainer) {
-            console.log('Moving styles panel...');
-            stylesContainer.innerHTML = originalStyles.innerHTML;
-            originalStyles.style.display = 'none';
+        // Hide originals
+        if (originalStyles) originalStyles.style.display = 'none';
+        if (originalLayers) originalLayers.style.display = 'none';
+        if (originalTraits) originalTraits.style.display = 'none';
 
-            // Reinitialize GrapesJS style manager in new container
-            if (currentEditor.StyleManager && typeof currentEditor.StyleManager.render === 'function') {
-                setTimeout(() => {
-                    const styleManager = currentEditor.StyleManager;
-                    if (styleManager && styleManager.__rendered) {
-                        const styleEl = styleManager.render();
-                        if (styleEl && stylesContainer) {
-                            stylesContainer.innerHTML = '';
-                            stylesContainer.appendChild(styleEl);
-                        }
-                    }
-                }, 50);
-            }
+        // Reinitialize panels using helper function
+        if (stylesContainer) {
+            console.log('Reinitializing styles panel...');
+            reinitializeGrapesComponent(currentEditor.StyleManager, stylesContainer, originalStyles);
+
+            // Setup collapse/expand untuk style sectors
+            setTimeout(() => {
+                setupStyleSectorsCollapse(stylesContainer);
+            }, 100);
         }
 
-        if (originalLayers && layersContainer) {
-            console.log('Moving layers panel...');
-            originalLayers.style.display = 'none';
-
-            // Reinitialize GrapesJS layer manager
-            if (currentEditor.LayerManager && typeof currentEditor.LayerManager.render === 'function') {
-                setTimeout(() => {
-                    const layerManager = currentEditor.LayerManager;
-                    if (layerManager && layerManager.__rendered) {
-                        const layersEl = layerManager.render();
-                        if (layersEl && layersContainer) {
-                            layersContainer.innerHTML = '';
-                            layersContainer.appendChild(layersEl);
-                        }
-                    }
-                }, 50);
-            }
+        if (layersContainer && currentEditor.LayerManager) {
+            console.log('Reinitializing layers panel...');
+            reinitializeGrapesComponent(currentEditor.LayerManager, layersContainer, originalLayers);
         }
 
-        if (originalTraits && traitsContainer) {
-            console.log('Moving traits panel...');
-            traitsContainer.innerHTML = originalTraits.innerHTML;
-            originalTraits.style.display = 'none';
-
-            // Reinitialize GrapesJS trait manager
-            if (currentEditor.TraitManager && typeof currentEditor.TraitManager.render === 'function') {
-                setTimeout(() => {
-                    const traitManager = currentEditor.TraitManager;
-                    if (traitManager && traitManager.__rendered) {
-                        const traitsEl = traitManager.render();
-                        if (traitsEl && traitsContainer) {
-                            traitsContainer.innerHTML = '';
-                            traitsContainer.appendChild(traitsEl);
-                        }
-                    }
-                }, 50);
-            }
+        if (traitsContainer && currentEditor.TraitManager) {
+            console.log('Reinitializing traits panel...');
+            reinitializeGrapesComponent(currentEditor.TraitManager, traitsContainer, originalTraits);
         }
-
-        // Show active tab
-
-
 
         // Trigger resize event
         setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
         }, 100);
-    }, [showPropertiesModal, activePropertiesTab]);
+    }, [showPropertiesModal]);
+
+    // Helper untuk setup collapse/expand pada style sectors
+    // Helper untuk setup collapse/expand pada style sectors
+    const setupStyleSectorsCollapse = (container: HTMLElement) => {
+        if (!container) return;
+
+        // Cari semua sector headers
+        const sectorHeaders = container.querySelectorAll('.gjs-sm-sector__header');
+
+        if (sectorHeaders.length === 0) {
+            console.log('No style sectors found, trying alternative selector...');
+            // Coba selector alternatif
+            const altSectors = container.querySelectorAll('[class*="sector"]');
+            console.log('Alternative sectors found:', altSectors.length);
+        }
+
+        sectorHeaders.forEach(header => {
+            // Cek apakah sudah ada event listener
+            if ((header as any).__hasCollapseListener) return;
+
+            const sector = header.closest('.gjs-sm-sector');
+            if (!sector) {
+                console.log('No sector found for header');
+                return;
+            }
+
+            const content = sector.querySelector('.gjs-sm-sector__content');
+            if (!content) {
+                console.log('No content found for sector');
+                return;
+            }
+
+            // Set initial state - check if content is visible
+            const isContentVisible = (content as HTMLElement).style.display !== 'none' &&
+                content.getAttribute('data-hidden') !== 'true';
+
+            if (!isContentVisible) {
+                (content as HTMLElement).style.display = 'none';
+                sector.setAttribute('data-hidden', 'true');
+            } else {
+                sector.setAttribute('data-hidden', 'false');
+            }
+
+            // Add click event
+            header.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const currentSector = (e.currentTarget as HTMLElement).closest('.gjs-sm-sector');
+                const currentContent = currentSector?.querySelector('.gjs-sm-sector__content');
+
+                if (currentSector && currentContent) {
+                    const isHidden = currentSector.getAttribute('data-hidden') === 'true';
+
+                    if (isHidden) {
+                        // Expand
+                        (currentContent as HTMLElement).style.display = 'block';
+                        currentSector.setAttribute('data-hidden', 'false');
+                    } else {
+                        // Collapse
+                        (currentContent as HTMLElement).style.display = 'none';
+                        currentSector.setAttribute('data-hidden', 'true');
+                    }
+
+                    // Trigger resize untuk GrapesJS
+                    setTimeout(() => {
+                        window.dispatchEvent(new Event('resize'));
+                    }, 50);
+                }
+            });
+
+            // Mark as having listener
+            (header as any).__hasCollapseListener = true;
+        });
+
+        console.log(`Style sectors collapse/expand initialized for ${sectorHeaders.length} sectors`);
+    };
 
     // Function to RESTORE panels to main DOM
     const restorePanelsToMainDOM = useCallback(() => {
@@ -166,20 +207,26 @@ export const useFullscreen = () => {
     const switchPropertiesModalTab = (tabName: string, currentEditor: any) => {
         console.log('Switching to tab:', tabName);
 
+        // Prevent recursion
+        if (isSwitchingTab.current) return;
+        isSwitchingTab.current = true;
+
         setActivePropertiesTab(tabName);
 
         const propertiesModal = fullscreenElements.current.propertiesModal;
-        if (!propertiesModal) return;
+        if (!propertiesModal) {
+            isSwitchingTab.current = false;
+            return;
+        }
 
+        // Update UI tabs
         const tabContents = propertiesModal.querySelectorAll('.properties-modal-tab-content');
         const tabs = propertiesModal.querySelectorAll('.properties-modal-tab');
 
-        // Update active tab button
         tabs.forEach(tab => tab.classList.remove('active'));
         const selectedTab = propertiesModal.querySelector(`[data-tab="${tabName}"]`);
         if (selectedTab) selectedTab.classList.add('active');
 
-        // Show selected tab content
         tabContents.forEach(content => {
             content.classList.remove('active');
             (content as HTMLElement).style.display = 'none';
@@ -191,24 +238,62 @@ export const useFullscreen = () => {
             (selectedContent as HTMLElement).style.display = 'block';
         }
 
-        // Move panels for this tab
-        movePanelsToPropertiesModal(currentEditor);
-
-        // Run GrapesJS command if available
-        const command = selectedTab?.getAttribute('data-command');
-        if (command && currentEditor.Commands.has(command)) {
-            setTimeout(() => {
-                currentEditor.runCommand(command);
-            }, 100);
-        }
-
-        // Force GrapesJS to refresh
+        // Reinitialize component based on tab with delay
         setTimeout(() => {
-            if (currentEditor.trigger) {
-                currentEditor.trigger('component:selected', currentEditor.getSelected());
+            try {
+                const container = propertiesModal.querySelector(`.${tabName}-container-fullscreen`) as HTMLElement;
+                const originalContainer = document.querySelector(`.${tabName}-container`) as HTMLElement;
+
+                if (container) {
+                    switch(tabName) {
+                        case 'styles':
+                            if (currentEditor.StyleManager) {
+                                reinitializeGrapesComponent(currentEditor.StyleManager, container, originalContainer);
+
+                                // Setup collapse/expand
+                                setTimeout(() => {
+                                    setupStyleSectorsCollapse(container);
+                                }, 150);
+                            }
+                            break;
+
+                        case 'layers':
+                            if (currentEditor.LayerManager) {
+                                reinitializeGrapesComponent(currentEditor.LayerManager, container, originalContainer);
+                            }
+                            break;
+
+                        case 'traits':
+                            if (currentEditor.TraitManager) {
+                                reinitializeGrapesComponent(currentEditor.TraitManager, container, originalContainer);
+                            }
+                            break;
+                    }
+                }
+
+                // Run command if available
+                const command = selectedTab?.getAttribute('data-command');
+                if (command && currentEditor.Commands.has(command)) {
+                    setTimeout(() => {
+                        currentEditor.runCommand(command);
+                    }, 100);
+                }
+
+                // Refresh editor
+                setTimeout(() => {
+                    if (currentEditor.trigger) {
+                        currentEditor.trigger('component:selected', currentEditor.getSelected());
+                    }
+                    window.dispatchEvent(new Event('resize'));
+
+                    // Reset flag
+                    isSwitchingTab.current = false;
+                }, 200);
+            } catch (error) {
+                console.error('Error in tab switch:', error);
+                isSwitchingTab.current = false;
             }
-            window.dispatchEvent(new Event('resize'));
-        }, 150);
+        }, 50);
     };
 
     // Enter canvas fullscreen mode
@@ -852,6 +937,15 @@ export const useFullscreen = () => {
 
     // Update modal visibility based on state
     useEffect(() => {
+
+        console.log('Fullscreen state updated:', {
+            isFullscreen,
+            showPropertiesModal,
+            activePropertiesTab,
+            showBlocksModal,
+            showCodeModal
+        });
+
         if (fullscreenElements.current.blocksModal) {
             if (showBlocksModal) {
                 fullscreenElements.current.blocksModal.classList.add('modal-visible');
@@ -884,22 +978,83 @@ export const useFullscreen = () => {
         }
     }, [showBlocksModal, showPropertiesModal, showCodeModal, activePropertiesTab]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            removeFullscreenElements();
 
-            if (fullscreenElements.current.keyHandler) {
-                document.removeEventListener('keydown', fullscreenElements.current.keyHandler);
+    const reinitializeGrapesComponent = (component: any, container: HTMLElement, originalContainer?: HTMLElement) => {
+        if (!component) {
+            console.warn('Component is null or undefined');
+            return false;
+        }
+
+        if (!container) {
+            console.warn('Container is null or undefined');
+            return false;
+        }
+
+        try {
+            console.log(`Reinitializing ${component.constructor?.name || 'component'}...`);
+            console.log('Component has render?', typeof component.render);
+
+            // Clear container
+            container.innerHTML = '';
+
+            // Check if component has render method
+            if (typeof component.render !== 'function') {
+                console.warn('Component does not have render method:', component);
+
+                // Fallback to original content if available
+                if (originalContainer && originalContainer.innerHTML.trim()) {
+                    console.log('Using fallback from original container');
+                    container.innerHTML = originalContainer.innerHTML;
+                    return true;
+                }
+                return false;
             }
 
-            if (fullscreenElements.current.clickHandler) {
-                document.removeEventListener('mousedown', fullscreenElements.current.clickHandler);
-            }
+            // Render component
+            const rendered = component.render();
+            console.log('Render result:', rendered);
 
-            delete (window as any).__fullscreenEditor;
-        };
-    }, []);
+            if (rendered) {
+                if (rendered.nodeType === Node.ELEMENT_NODE) {
+                    // If it's an element, append it
+                    container.appendChild(rendered);
+                    console.log('Appended element node');
+                } else if (typeof rendered === 'string') {
+                    // If it's a string, set as innerHTML
+                    container.innerHTML = rendered;
+                    console.log('Set string as innerHTML');
+                } else if (rendered instanceof HTMLElement) {
+                    // If it's an HTMLElement
+                    container.appendChild(rendered);
+                    console.log('Appended HTMLElement');
+                } else {
+                    console.warn('Unknown render result type:', typeof rendered, rendered);
+                    return false;
+                }
+
+                // Mark as rendered
+                component.__rendered = container;
+
+                console.log(`Component ${component.constructor?.name || 'unknown'} reinitialized successfully`);
+                return true;
+            } else {
+                console.warn('Component.render() returned falsy value');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error reinitializing component:', error);
+
+            // Fallback to original content
+            if (originalContainer && originalContainer.innerHTML.trim()) {
+                console.log('Using fallback content after error');
+                container.innerHTML = originalContainer.innerHTML;
+                return true;
+            }
+        }
+
+        return false;
+    };
+
 
     // Fullscreen Modals component
     const FullscreenModals = () => {
