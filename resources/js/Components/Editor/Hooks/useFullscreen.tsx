@@ -371,6 +371,7 @@ export const useFullscreen = () => {
                     const codeModal = fullscreenElements.current.codeModal;
                     const toolbar = fullscreenElements.current.toolbar;
 
+                    // Cek jika klik di luar blocks modal
                     if (blocksModal &&
                         blocksModal.classList.contains('modal-visible') &&
                         !blocksModal.contains(target) &&
@@ -378,6 +379,7 @@ export const useFullscreen = () => {
                         setShowBlocksModal(false);
                     }
 
+                    // Cek jika klik di luar properties modal
                     if (propertiesModal &&
                         propertiesModal.classList.contains('modal-visible') &&
                         !propertiesModal.contains(target) &&
@@ -386,12 +388,14 @@ export const useFullscreen = () => {
                         restorePanelsToMainDOM();
                     }
 
+                    // Cek jika klik di luar code modal
                     if (codeModal &&
                         codeModal.classList.contains('modal-visible') &&
                         !codeModal.contains(target) &&
                         !toolbar?.contains(target)) {
                         setShowCodeModal(false);
                     }
+                    // Code modal bisa tetap terbuka bersama modal lain
                 };
 
                 // Add event listeners
@@ -602,45 +606,47 @@ export const useFullscreen = () => {
         // Add event listeners
         document.getElementById('toggle-blocks-modal')?.addEventListener('click', () => {
             const editorInstance = (window as any).__fullscreenEditor;
-            setShowBlocksModal(!showBlocksModal);
-            if (!showBlocksModal && editorInstance) {
+            const newShowBlocksModal = !showBlocksModal;
+            setShowBlocksModal(newShowBlocksModal);
+
+            // Jika membuka blocks modal, tutup properties modal saja
+            if (newShowBlocksModal && editorInstance) {
                 renderBlocksToFullscreen(editorInstance);
-            }
-            // Close other modals
-            if (showBlocksModal) {
-                setShowPropertiesModal(false);
-                setShowCodeModal(false);
-                restorePanelsToMainDOM();
+                // Hanya tutup properties modal jika terbuka
+                if (showPropertiesModal) {
+                    setShowPropertiesModal(false);
+                    restorePanelsToMainDOM();
+                }
+                // Biarkan code modal tetap terbuka jika sudah terbuka
             }
         });
 
         document.getElementById('toggle-properties-modal')?.addEventListener('click', () => {
             const editorInstance = (window as any).__fullscreenEditor;
-            const newState = !showPropertiesModal;
-            setShowPropertiesModal(newState);
-            if (newState && editorInstance) {
+            const newShowPropertiesModal = !showPropertiesModal;
+            setShowPropertiesModal(newShowPropertiesModal);
+
+            // Jika membuka properties modal, tutup blocks modal saja
+            if (newShowPropertiesModal && editorInstance) {
                 movePanelsToPropertiesModal(editorInstance);
+                // Hanya tutup blocks modal jika terbuka
+                if (showBlocksModal) {
+                    setShowBlocksModal(false);
+                }
+                // Biarkan code modal tetap terbuka jika sudah terbuka
             } else {
                 restorePanelsToMainDOM();
-            }
-            // Close other modals
-            if (showPropertiesModal) {
-                setShowBlocksModal(false);
-                setShowCodeModal(false);
             }
         });
 
         document.getElementById('toggle-code-modal')?.addEventListener('click', () => {
             const editorInstance = (window as any).__fullscreenEditor;
-            setShowCodeModal(!showCodeModal);
-            if (!showCodeModal && editorInstance) {
+            const newShowCodeModal = !showCodeModal;
+            setShowCodeModal(newShowCodeModal);
+
+            if (newShowCodeModal && editorInstance) {
                 setupCodeEditorInModal(editorInstance);
-            }
-            // Close other modals
-            if (showCodeModal) {
-                setShowBlocksModal(false);
-                setShowPropertiesModal(false);
-                restorePanelsToMainDOM();
+                // Code modal bisa tetap terbuka bersama modal lain
             }
         });
 
@@ -949,7 +955,6 @@ export const useFullscreen = () => {
 
     // Update modal visibility based on state
     useEffect(() => {
-
         console.log('Fullscreen state updated:', {
             isFullscreen,
             showPropertiesModal,
@@ -958,6 +963,17 @@ export const useFullscreen = () => {
             showCodeModal
         });
 
+        // Sinkronisasi modal - hanya block manager dan properties modal yang eksklusif
+        if (showBlocksModal && showPropertiesModal) {
+            // Jika keduanya terbuka, tutup salah satu berdasarkan state
+            // Ini mencegah keduanya terbuka bersamaan
+            if (showBlocksModal && showPropertiesModal) {
+                // Prioritas: properties modal tetap terbuka, blocks modal ditutup
+                setShowBlocksModal(false);
+            }
+        }
+
+        // Update visibility CSS classes
         if (fullscreenElements.current.blocksModal) {
             if (showBlocksModal) {
                 fullscreenElements.current.blocksModal.classList.add('modal-visible');
@@ -990,6 +1006,13 @@ export const useFullscreen = () => {
         }
     }, [showBlocksModal, showPropertiesModal, showCodeModal, activePropertiesTab]);
 
+    // Helper function to close all modals
+    const closeAllModals = () => {
+        setShowBlocksModal(false);
+        setShowPropertiesModal(false);
+        setShowCodeModal(false);
+        restorePanelsToMainDOM();
+    };
 
     const reinitializeGrapesComponent = (component: any, container: HTMLElement, originalContainer?: HTMLElement) => {
         if (!component) {
