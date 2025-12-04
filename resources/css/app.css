@@ -418,16 +418,20 @@
     white-space: nowrap !important;
 }
 
+/* MODAL TABS VERTICAL dengan tooltip */
 .properties-modal-tabs {
     display: flex !important;
+    flex-direction: column !important; /* <-- INI YANG UTAMA */
     gap: 8px !important;
     flex: 1 !important;
-    justify-content: center !important;
-    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    margin-top: 10px !important;
 }
 
 .properties-modal-tab {
-    padding: 10px 16px !important;
+    position: relative !important;
+    padding: 12px 16px !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: 10px !important;
     background: rgba(255, 255, 255, 0.15) !important;
@@ -440,61 +444,175 @@
     text-transform: uppercase !important;
     cursor: pointer !important;
     white-space: nowrap !important;
+    text-align: left !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    overflow: visible !important;
 }
 
+/* SVG size untuk vertical tabs */
+.properties-modal-tab svg {
+    width: 20px !important;
+    height: 20px !important;
+    stroke-width: 1.5 !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    transition: all 0.3s ease !important;
+    pointer-events: none !important;
+    flex-shrink: 0 !important;
+}
+
+/* Text di samping icon */
+.properties-modal-tab span {
+    flex: 1 !important;
+    text-align: left !important;
+}
+
+/* ===== TOOLTIP untuk VERTICAL TABS (di sebelah KANAN) ===== */
+.properties-modal-tab[data-title]::after {
+    content: attr(data-title) !important;
+    position: absolute !important;
+    left: calc(100% + 15px) !important; /* Di sebelah kanan button */
+    top: 50% !important;
+    transform: translateY(-50%) translateX(-10px) !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(8px) !important;
+    color: white !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    pointer-events: none !important;
+    z-index: 1000 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    min-width: max-content !important;
+}
+
+/* Tooltip arrow di kiri */
+.properties-modal-tab[data-title]::before {
+    content: '' !important;
+    position: absolute !important;
+    left: calc(100% + 9px) !important; /* Sesuaikan dengan tooltip */
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    border-top: 6px solid transparent !important;
+    border-bottom: 6px solid transparent !important;
+    border-right: 6px solid rgba(15, 23, 42, 0.95) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: all 0.3s ease !important;
+    pointer-events: none !important;
+    z-index: 1001 !important;
+}
+
+/* Show tooltip on hover */
+.properties-modal-tab[data-title]:hover::after {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(-50%) translateX(0) !important;
+}
+
+.properties-modal-tab[data-title]:hover::before {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Hover effect untuk vertical tabs */
 .properties-modal-tab:hover {
     background: rgba(255, 255, 255, 0.25) !important;
     border-color: rgba(255, 255, 255, 0.5) !important;
     color: white !important;
-    transform: translateY(-1px) !important;
+    transform: translateX(4px) !important; /* Geser ke kanan saat hover */
 }
 
+.properties-modal-tab:hover svg {
+    transform: scale(1.1) !important;
+    stroke: white !important;
+}
+
+/* Active state */
 .properties-modal-tab.active {
     background: white !important;
     border-color: white !important;
     color: #059669 !important;
     box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3) !important;
-    transform: translateY(-1px) !important;
+    transform: translateX(8px) !important; /* Lebih ke kanan saat aktif */
+}
+
+.properties-modal-tab.active svg {
+    stroke: #059669 !important;
+    transform: scale(1.1) !important;
+}
+
+/* ===== HEADER BUTTON ===== */
+.properties-modal-header {
+    display: flex !important;
+    flex-direction: column !important; /* Header juga vertikal */
+    gap: 12px !important;
+    padding: 20px 24px !important;
 }
 
 .properties-modal-header button {
-    background: rgba(255, 255, 255, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: 8px !important;
-    color: white !important;
-    cursor: pointer !important;
-    padding: 8px 12px !important;
-    font-size: 16px !important;
-    transition: all 0.3s ease !important;
+    align-self: flex-end !important;
+    margin-top: -40px !important; /* Naikkan ke atas */
+}
+
+/* Untuk button HORIZONTAL [ ] [ ] [ ] */
+.properties-modal-tabs.horizontal {
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
 }
 
-.properties-modal-header button:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-    transform: rotate(90deg) !important;
-}
-
-.properties-modal-content {
+.properties-modal-tabs.horizontal .properties-modal-tab {
     flex: 1 !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    border-radius: 0 0 16px 16px !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    padding: 10px 8px !important;
 }
 
-.properties-modal-tab-content {
-    display: none !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-    padding: 0 !important;
+/* Tooltip di ATAS untuk horizontal layout */
+.properties-modal-tabs.horizontal .properties-modal-tab[data-title]::after {
+    left: 50% !important;
+    top: -40px !important;
+    bottom: auto !important;
+    transform: translateX(-50%) translateY(10px) !important;
 }
 
-.properties-modal-tab-content.active {
-    display: block !important;
+.properties-modal-tabs.horizontal .properties-modal-tab[data-title]::before {
+    left: 50% !important;
+    top: -12px !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+    border-right: 6px solid transparent !important;
+    border-left: 6px solid transparent !important;
+    border-bottom: 6px solid rgba(15, 23, 42, 0.95) !important;
+    border-top: none !important;
 }
+
+.properties-modal-tabs.horizontal .properties-modal-tab[data-title]:hover::after {
+    transform: translateX(-50%) translateY(0) !important;
+}
+
+/* Hover untuk horizontal */
+.properties-modal-tabs.horizontal .properties-modal-tab:hover {
+    transform: translateY(-2px) !important; /* Naik ke atas */
+}
+
+.properties-modal-tabs.horizontal .properties-modal-tab.active {
+    transform: translateY(-2px) !important;
+}
+
 
 /* Styles Tab Specific */
 #styles-tab {
@@ -574,76 +692,166 @@
 /* Layers Tab Specific */
 #layers-tab {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    padding: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
 }
 
+/* Tree View dengan Garis Penghubung */
 #layers-tab .gjs-layers-container {
     padding: 16px !important;
     background: transparent !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 #layers-tab .gjs-layer {
-    background: white !important;
-    border: 2px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    margin-bottom: 10px !important;
-    padding: 16px !important;
-    transition: all 0.3s ease !important;
     position: relative !important;
-    overflow: hidden !important;
-    cursor: pointer !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+#layers-tab .gjs-layer-item {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    padding: 8px 12px 8px 0 !important;
+    margin-left: 20px !important;
+    min-height: 32px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
 }
 
-#layers-tab .gjs-layer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(to bottom, #10b981, #059669);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+/* Garis vertikal untuk parent */
+#layers-tab .gjs-layer-item::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -20px !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 1px !important;
+    background: #cbd5e1 !important;
 }
 
-#layers-tab .gjs-layer:hover {
-    border-color: #10b981 !important;
+/* Garis horizontal ke item */
+#layers-tab .gjs-layer-item::after {
+    content: '' !important;
+    position: absolute !important;
+    left: -20px !important;
+    top: 50% !important;
+    width: 20px !important;
+    height: 1px !important;
+    background: #cbd5e1 !important;
+    transform: translateY(-50%) !important;
+}
+
+/* Hapus garis untuk item terakhir dalam grup */
+#layers-tab .gjs-layer:last-child .gjs-layer-item::before {
+    height: 50% !important;
+    bottom: auto !important;
+}
+
+/* Untuk root element (Body) - tanpa garis */
+#layers-tab > .gjs-layer > .gjs-layer-item::before,
+#layers-tab > .gjs-layer > .gjs-layer-item::after {
+    display: none !important;
+}
+
+/* Indentation berdasarkan level */
+#layers-tab .gjs-layer {
+    margin-left: 20px !important;
+}
+
+#layers-tab .gjs-layer .gjs-layer {
+    margin-left: 20px !important;
+}
+
+#layers-tab .gjs-layer .gjs-layer .gjs-layer {
+    margin-left: 20px !important;
+}
+
+/* Container children */
+#layers-tab .gjs-layer-children {
+    margin-left: 20px !important;
+    position: relative !important;
+}
+
+/* Hover effect */
+#layers-tab .gjs-layer-item:hover {
     background: #f0fdfa !important;
-    transform: translateX(4px) !important;
-    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.15) !important;
 }
 
-#layers-tab .gjs-layer:hover::before {
-    opacity: 1;
+/* Selected layer */
+#layers-tab .gjs-layer-item.gjs-one-bg {
+    background: linear-gradient(90deg, #f0fdfa 0%, #d1fae5 100%) !important;
+    border-left: 3px solid #10b981 !important;
 }
 
-#layers-tab .gjs-layer.gjs-selected {
-    background: linear-gradient(135deg, #f0fdfa 0%, #d1fae5 100%) !important;
-    border-color: #10b981 !important;
-    box-shadow:
-        0 12px 24px rgba(16, 185, 129, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-    transform: translateX(8px) scale(1.02) !important;
+/* Ikon visibility */
+#layers-tab .gjs-layer-vis {
+    margin-right: 8px !important;
+    color: #64748b !important;
+    opacity: 0.7 !important;
+    transition: opacity 0.2s ease !important;
 }
 
-#layers-tab .gjs-layer-title {
+#layers-tab .gjs-layer-item:hover .gjs-layer-vis {
+    opacity: 1 !important;
+}
+
+/* Caret untuk expand/collapse */
+#layers-tab .gjs-layer-caret {
+    margin-right: 8px !important;
+    color: #94a3b8 !important;
+    transition: transform 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+#layers-tab .gjs-layer-open .gjs-layer-caret {
+    transform: rotate(90deg) !important;
+}
+
+/* Layer title */
+#layers-tab .gjs-layer-title-inn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+#layers-tab .gjs-layer-name {
     color: #1e293b !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
-    flex: 1 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
 }
 
+/* Layer count */
 #layers-tab .gjs-layer-count {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: white !important;
-    font-weight: 700 !important;
-    padding: 4px 10px !important;
-    border-radius: 20px !important;
+    margin-left: auto !important;
+    background: #e2e8f0 !important;
+    color: #475569 !important;
     font-size: 11px !important;
-    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3) !important;
+    padding: 2px 8px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
 }
+
+/* Move icon */
+#layers-tab .gjs-layer-move {
+    margin-left: 8px !important;
+    opacity: 0.5 !important;
+    transition: opacity 0.2s ease !important;
+}
+
+#layers-tab .gjs-layer-item:hover .gjs-layer-move {
+    opacity: 1 !important;
+}
+
 
 /* Traits Tab Specific */
 #traits-tab {
