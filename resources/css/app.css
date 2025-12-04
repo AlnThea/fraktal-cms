@@ -291,8 +291,8 @@
 .fullscreen-properties-modal #close-properties-modal,
 .fullscreen-code-modal .code-modal-header button {
     /* Ukuran standar */
-    width: 44px !important;
-    height: 44px !important;
+    width: 28px !important;
+    height: 28px !important;
 
     /* Styling standar */
     background: rgba(255, 255, 255, 0.2) !important;
@@ -308,7 +308,7 @@
     margin: 0 !important;
 
     /* Text/Icon */
-    font-size: 20px !important;
+    font-size: 16px !important;
     font-weight: 500 !important;
     line-height: 1 !important;
 
@@ -661,15 +661,15 @@
 /* Tabs styling - penting untuk tooltip tetap muncul */
 .properties-modal-tabs.horizontal .properties-modal-tab {
     flex: 0 0 auto !important;
-    width: 44px !important;
-    height: 44px !important;
-    padding: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     background: rgba(255, 255, 255, 0.15) !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     color: rgba(255, 255, 255, 0.9) !important;
     cursor: pointer !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -679,8 +679,8 @@
 
 /* SVG di dalam tab kecil */
 .properties-modal-tabs.horizontal .properties-modal-tab svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 16px !important;
+    height: 16px !important;
     stroke: currentColor !important;
     stroke-width: 1.5 !important;
     fill: none !important;
@@ -693,7 +693,7 @@
 .properties-modal-tabs.horizontal .properties-modal-tab:hover {
     background: rgba(255, 255, 255, 0.25) !important;
     border-color: rgba(255, 255, 255, 0.5) !important;
-    transform: translateY(-2px) scale(1.05) !important;
+    transform: translateY(-1px) scale(1.05) !important;
     box-shadow:
         0 8px 16px rgba(255, 255, 255, 0.2),
         0 2px 4px rgba(255, 255, 255, 0.1) !important;
@@ -713,7 +713,7 @@
     box-shadow:
         0 8px 16px rgba(255, 255, 255, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-    transform: translateY(-2px) !important;
+    transform: translateY(-1px) !important;
 }
 
 
@@ -729,13 +729,13 @@
     color: rgba(255, 255, 255, 0.95) !important;
     cursor: pointer !important;
     padding: 10px !important;
-    font-size: 20px !important;
+    font-size: 16px !important;
     font-weight: 500 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 44px !important;
-    height: 44px !important;
+    width: 28px !important;
+    height: 28px !important;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     position: relative !important;
     overflow: visible !important;
@@ -1418,9 +1418,10 @@
     .fullscreen-properties-modal #close-properties-modal,
     .fullscreen-code-modal .code-modal-header button,
     .properties-modal-tabs.horizontal .properties-modal-tab {
-        width: 40px !important;
-        height: 40px !important;
-        font-size: 18px !important;
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 6px !important;
+        border-width: 1.5px !important;
     }
 
     .properties-modal-header {
@@ -1441,8 +1442,8 @@
     }
 
     .properties-modal-tabs.horizontal .properties-modal-tab svg {
-        width: 18px !important;
-        height: 18px !important;
+        width: 14px !important;
+        height: 14px !important;
     }
 
     .blocks-modal-header,
@@ -1500,14 +1501,15 @@
     .fullscreen-properties-modal #close-properties-modal,
     .fullscreen-code-modal .code-modal-header button,
     .properties-modal-tabs.horizontal .properties-modal-tab {
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 16px !important;
+        width: 22px !important;
+        height: 22px !important;
+        border-radius: 5px !important;
+        border-width: 1px !important;
     }
 
     .properties-modal-tabs.horizontal .properties-modal-tab svg {
-        width: 16px !important;
-        height: 16px !important;
+        width: 44px !important;
+        height: 44px !important;
     }
 
     .blocks-modal-header,
@@ -1577,8 +1579,9 @@
     }
 
     .properties-modal-tabs.horizontal .properties-modal-tab svg {
-        width: 16px !important;
-        height: 16px !important;
+        width: 12px !important;
+        height: 12px !important;
+        stroke-width: 1.2 !important;
     }
 
     /* Tooltip untuk mobile */
@@ -1610,14 +1613,15 @@
     .fullscreen-properties-modal #close-properties-modal,
     .fullscreen-code-modal .code-modal-header button,
     .properties-modal-tabs.horizontal .properties-modal-tab {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 14px !important;
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
     }
 
     .properties-modal-tabs.horizontal .properties-modal-tab svg {
-        width: 14px !important;
-        height: 14px !important;
+        width: 10px !important;
+        height: 10px !important;
+        stroke-width: 1 !important;
     }
 
     .blocks-modal-header,
