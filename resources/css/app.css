@@ -66,7 +66,7 @@
     width: 44px !important;
     height: 44px !important;
     position: relative !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 /* Tooltip arrow untuk mini toolbar */
