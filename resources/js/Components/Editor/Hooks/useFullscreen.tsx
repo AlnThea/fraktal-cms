@@ -8,6 +8,7 @@ export const useFullscreen = () => {
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [activePropertiesTab, setActivePropertiesTab] = useState('styles');
     const isSwitchingTab = useRef(false);
+    const [isToggling, setIsToggling] = useState(false);
 
     const fullscreenElements = useRef<{
         toolbar: HTMLElement | null;
@@ -419,6 +420,7 @@ export const useFullscreen = () => {
     }, []);
 
     // Exit fullscreen mode
+    // Exit fullscreen mode
     const exitFullscreen = useCallback((currentEditor: any) => {
         try {
             console.log('Exiting canvas fullscreen...');
@@ -440,6 +442,9 @@ export const useFullscreen = () => {
             setShowBlocksModal(false);
             setShowPropertiesModal(false);
             setShowCodeModal(false);
+
+            // Reset toggling state
+            setIsToggling(false);
 
             // Restore panels before removing modals
             restorePanelsToMainDOM();
@@ -605,38 +610,53 @@ export const useFullscreen = () => {
 
         // Add event listeners
         document.getElementById('toggle-blocks-modal')?.addEventListener('click', () => {
-            const editorInstance = (window as any).__fullscreenEditor;
-            const newShowBlocksModal = !showBlocksModal;
-            setShowBlocksModal(newShowBlocksModal);
+            if (isToggling) return;
+            setIsToggling(true);
 
-            // Jika membuka blocks modal, tutup properties modal saja
-            if (newShowBlocksModal && editorInstance) {
-                renderBlocksToFullscreen(editorInstance);
-                // Hanya tutup properties modal jika terbuka
-                if (showPropertiesModal) {
+            const editorInstance = (window as any).__fullscreenEditor;
+
+            // Gunakan callback untuk mendapatkan state terbaru
+            setShowBlocksModal(prevShowBlocksModal => {
+                const newShowBlocksModal = !prevShowBlocksModal;
+
+                if (newShowBlocksModal && editorInstance) {
+                    renderBlocksToFullscreen(editorInstance);
+
+                    // Tutup properties modal jika terbuka
+                    // Di sini kita bisa akses state showPropertiesModal langsung
+                    // atau lebih baik, langsung set ke false
                     setShowPropertiesModal(false);
                     restorePanelsToMainDOM();
                 }
-                // Biarkan code modal tetap terbuka jika sudah terbuka
-            }
+
+                return newShowBlocksModal;
+            });
+
+            setTimeout(() => setIsToggling(false), 100);
         });
 
         document.getElementById('toggle-properties-modal')?.addEventListener('click', () => {
-            const editorInstance = (window as any).__fullscreenEditor;
-            const newShowPropertiesModal = !showPropertiesModal;
-            setShowPropertiesModal(newShowPropertiesModal);
+            if (isToggling) return;
+            setIsToggling(true);
 
-            // Jika membuka properties modal, tutup blocks modal saja
-            if (newShowPropertiesModal && editorInstance) {
-                movePanelsToPropertiesModal(editorInstance);
-                // Hanya tutup blocks modal jika terbuka
-                if (showBlocksModal) {
+            const editorInstance = (window as any).__fullscreenEditor;
+
+            setShowPropertiesModal(prevShowPropertiesModal => {
+                const newShowPropertiesModal = !prevShowPropertiesModal;
+
+                if (newShowPropertiesModal && editorInstance) {
+                    movePanelsToPropertiesModal(editorInstance);
+
+                    // Tutup blocks modal jika terbuka
                     setShowBlocksModal(false);
+                } else {
+                    restorePanelsToMainDOM();
                 }
-                // Biarkan code modal tetap terbuka jika sudah terbuka
-            } else {
-                restorePanelsToMainDOM();
-            }
+
+                return newShowPropertiesModal;
+            });
+
+            setTimeout(() => setIsToggling(false), 100);
         });
 
         document.getElementById('toggle-code-modal')?.addEventListener('click', () => {
@@ -963,15 +983,8 @@ export const useFullscreen = () => {
             showCodeModal
         });
 
-        // Sinkronisasi modal - hanya block manager dan properties modal yang eksklusif
-        if (showBlocksModal && showPropertiesModal) {
-            // Jika keduanya terbuka, tutup salah satu berdasarkan state
-            // Ini mencegah keduanya terbuka bersamaan
-            if (showBlocksModal && showPropertiesModal) {
-                // Prioritas: properties modal tetap terbuka, blocks modal ditutup
-                setShowBlocksModal(false);
-            }
-        }
+        // Tidak perlu sinkronisasi paksa di sini, biarkan event handler yang mengatur
+        // Remove the conflicting logic here
 
         // Update visibility CSS classes
         if (fullscreenElements.current.blocksModal) {
